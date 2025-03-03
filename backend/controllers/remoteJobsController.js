@@ -1,42 +1,47 @@
 const axios = require('axios')
-const RemoteJob = require('../models/RemoteJob')
-const apiClient = require('../services/apiService')
 
-const fetchAndSaveJobs = async (req, res) => {
+const REMOTIVE_API_URL = 'https://remotive.io/api/remote-jobs'
+
+const fetchAndSaveJobs = async (req, res, jobsContainer) => {
   try {
-    const response = await apiClient.get('/remote-jobs?limit=100')
+    console.log('🔄 Fetching jobs from Remotive API...')
+
+    const response = await axios.get(REMOTIVE_API_URL, { timeout: 15000 })
+
+    if (!response.data || !Array.isArray(response.data.jobs)) {
+      console.error('❌ Invalid API response format:', response.data)
+      return res.status(500).json({ error: 'Invalid response from Remotive API' })
+    }
+
+    console.log(`✅ Successfully fetched ${response.data.jobs.length} jobs from Remotive.`)
+
     const jobs = response.data.jobs.map((job) => ({
-      id: job.id,
+      id: job.id.toString(),
       url: job.url,
       title: job.title,
       company_name: job.company_name,
-      company_logo: job.company_logo,
+      company_logo:
+        job.company_logo && job.company_logo.startsWith('http')
+          ? job.company_logo
+          : 'https://via.placeholder.com/50?text=No+Logo', // ✅ Ensure valid logo
       category: job.category,
       job_type: job.job_type,
-      publication_date: new Date(job.publication_date),
-      candidate_required_location: job.candidate_required_location,
-      salary: job.salary,
-      description: job.description,
+      publication_date: new Date(job.publication_date).toISOString(),
+      candidate_required_location: job.candidate_required_location || 'Worldwide',
+      salary: job.salary || 'Not specified',
+      description: job.description || 'No description available',
     }))
 
-    await RemoteJob.deleteMany({})
-    await RemoteJob.insertMany(jobs)
+    console.log(`📦 Saving ${jobs.length} jobs into the database.`)
 
-    res.json({ message: 'Jobs fetched and saved', jobCount: jobs.length })
+    await jobsContainer.items.create(jobs)
+
+    console.log('✅ Jobs saved successfully.')
+    res.json({ message: 'Jobs updated successfully', jobCount: jobs.length })
   } catch (error) {
-    console.error('Error fetching jobs:', error)
-    res.status(500).json({ error: 'Error fetching jobs' })
+    console.error('❌ Error fetching jobs:', error.message)
+    res.status(500).json({ error: error.message || 'Error fetching jobs' })
   }
 }
 
-const getSavedJobs = async (req, res) => {
-  try {
-    const jobs = await RemoteJob.find()
-    res.json(jobs)
-  } catch (error) {
-    console.error('Error retrieving jobs:', error)
-    res.status(500).json({ error: 'Error retrieving saved jobs' })
-  }
-}
-
-module.exports = { fetchAndSaveJobs, getSavedJobs }
+module.exports = { fetchAndSaveJobs }

@@ -1,39 +1,25 @@
 <template>
   <n-message-provider>
-    <Navbar/>
     <div class="app-container">
-      <router-view class="centered-view" />
+      <router-view />
     </div>
-    <Footer/>
   </n-message-provider>
 </template>
 
 <script>
-import Navbar from '@/components/Navbar.vue'
-import Footer from '@/components/Footer.vue';
-
 export default {
-  components: { Navbar, Footer },
-};
+  name: 'App',
+}
 </script>
 
 <style scoped>
+/* ✅ Make sure the app takes the full screen */
 .app-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-}
-
-.centered-view {
+  width: 100vw; /* Full width */
+  height: 100vh; /* Full height */
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-}
-
-.footer {
-  margin-top: auto;
+  overflow: hidden; /* Prevent scrolling */
 }
 </style>

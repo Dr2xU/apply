@@ -1,48 +1,79 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 
 // 🔹 Generate JWT Token
 const generateToken = (user) => {
-  return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+  return jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
     expiresIn: '1h',
-  });
-};
+  })
+}
 
 // 📌 Register User
-exports.registerUser = async (req, res) => {
+exports.registerUser = async (req, res, usersContainer) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' })
+    }
 
     // 🔹 Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ error: 'User already exists. Please log in.' }); // ✅ Send friendly message
+    const { resources: existingUsers } = await usersContainer.items
+      .query({
+        query: 'SELECT * FROM c WHERE c.email = @email',
+        parameters: [{ name: '@email', value: email }],
+      })
+      .fetchAll()
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ error: 'User already exists. Please log in.' })
     }
 
-    user = new User({ email, password });
-    await user.save();
+    // 🔹 Hash Password
+    const hashedPassword = await bcrypt.hash(password, 10)
 
-    res.status(201).json({ message: 'User registered successfully!' });
+    // 🔹 Create new user
+    const newUser = {
+      id: Date.now().toString(),
+      email,
+      password: hashedPassword,
+    }
+
+    // 🔹 Save to CosmosDB
+    await usersContainer.items.create(newUser)
+
+    res.status(201).json({ message: '✅ User registered successfully!' })
   } catch (err) {
-    console.error("❌ Registration Error:", err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    console.error('❌ Registration Error:', err)
+    res.status(500).json({ error: 'Server error', details: err.message })
   }
-};
+}
 
 // 📌 Login User
-exports.loginUser = async (req, res) => {
+exports.loginUser = async (req, res, usersContainer) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const { email, password } = req.body
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' })
     }
 
-    const token = generateToken(user);
-    res.json({ token, email: user.email });
+    // 🔹 Find User
+    const { resources: users } = await usersContainer.items
+      .query({
+        query: 'SELECT * FROM c WHERE c.email = @email',
+        parameters: [{ name: '@email', value: email }],
+      })
+      .fetchAll()
+
+    const user = users[0]
+
+    // 🔹 Generate JWT Token
+    const token = generateToken(user)
+
+    res.json({ message: '✅ Login successful!', token, email: user.email, userId: user.id }) // ✅ Return userId
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Login Error:', err)
+    res.status(500).json({ error: 'Server error', details: err.message })
   }
-};
+}

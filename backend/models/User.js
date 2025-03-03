@@ -1,20 +1,36 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+// models/User.js
+const { database } = require('../config/db')
+const bcrypt = require('bcryptjs')
 
-const UserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
-});
+const container = database.container('users')
 
-// 🔹 Hash password before saving user
-UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  try {
-    this.password = await bcrypt.hash(this.password, 10);
-    next();
-  } catch (err) {
-    next(err); // ✅ Pass error to Mongoose
+class User {
+  constructor(email, password) {
+    this.id = email
+    this.email = email
+    this.password = password
   }
-});
+}
 
-module.exports = mongoose.model('User', UserSchema);
+const createUser = async (email, password) => {
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const user = new User(email, hashedPassword)
+    const { resource } = await container.items.create(user)
+    return resource
+  } catch (err) {
+    console.error('Error creating user:', err)
+    throw err
+  }
+}
+
+const findUserByEmail = async (email) => {
+  const querySpec = {
+    query: 'SELECT * FROM c WHERE c.id = @email',
+    parameters: [{ name: '@email', value: email }],
+  }
+  const { resources } = await container.items.query(querySpec).fetchAll()
+  return resources.length ? resources[0] : null
+}
+
+module.exports = { createUser, findUserByEmail }

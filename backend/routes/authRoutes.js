@@ -1,9 +1,11 @@
-const express = require('express');
-const { registerUser, loginUser } = require('../controllers/authController');
+const express = require('express')
+const { registerUser, loginUser } = require('../controllers/authController')
 
-const router = express.Router();
+module.exports = (usersContainer) => {
+  const router = express.Router()
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+  router.post('/register', (req, res) => registerUser(req, res, usersContainer))
+  router.post('/login', (req, res) => loginUser(req, res, usersContainer))
 
-module.exports = router;
+  return router
+}

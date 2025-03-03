@@ -1,63 +1,103 @@
 <template>
-  <n-card title="Sign Up" style="max-width: 400px; margin: auto;">
-    <n-form @submit.prevent="handleSignup">
-      <InputForm v-model="email" label="Email" placeholder="Enter your email" />
-      <InputForm v-model="password" label="Password" type="password" placeholder="Enter your password" />
-      <InputForm v-model="confirmPassword" label="Confirm Password" type="password" placeholder="Confirm your password" />
-
-      <n-button type="primary" @click="handleSignup" :disabled="!isFormValid">Sign Up</n-button>
-    </n-form>
-  </n-card>
+  <form class="auth-form" @submit.prevent="handleSignup">
+    <div class="input-group">
+      <input type="text" v-model="name" placeholder="Enter your name" required />
+    </div>
+    <div class="input-group">
+      <input type="email" v-model="email" placeholder="Enter your email" required />
+    </div>
+    <div class="input-group">
+      <input type="password" v-model="password" placeholder="Enter your password" required />
+    </div>
+    <div class="input-group">
+      <input type="password" v-model="confirmPassword" placeholder="Confirm password" required />
+    </div>
+    <button type="submit" class="btn">Sign Up</button>
+    <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+  </form>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
-import { useMessage } from 'naive-ui';
-import { useRouter } from 'vue-router';
-import { registerUser, loginUser } from '@/api/auth';
-import { useAuthStore } from '@/stores/auth';
-import InputForm from '@/components/InputForm.vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { registerUser } from '@/api/auth'
 
 export default {
-  components: { InputForm },
   setup() {
-    const email = ref('');
-    const password = ref('');
-    const confirmPassword = ref('');
-    const message = useMessage(); // ✅ Naive UI message
-    const router = useRouter();
-    const authStore = useAuthStore();
-
-    const isFormValid = computed(() => {
-      return email.value.trim() !== '' && password.value !== '' && confirmPassword.value !== '';
-    });
+    const name = ref('')
+    const email = ref('')
+    const password = ref('')
+    const confirmPassword = ref('')
+    const errorMessage = ref('')
+    const router = useRouter()
 
     const handleSignup = async () => {
       if (password.value !== confirmPassword.value) {
-        message.error("Passwords do not match!"); // ✅ Error at the top
-        return;
+        errorMessage.value = "Passwords don't match"
+        return
       }
-
       try {
-        await registerUser(email.value, password.value);
-        message.success("Signup successful! Logging you in...");
-
-        const loginResponse = await loginUser(email.value, password.value);
-        localStorage.setItem('authToken', loginResponse.token);
-        authStore.login({ email: loginResponse.email });
-
-        router.push('/dashboard');
-
+        await registerUser(name.value, email.value, password.value)
+        router.push('/dashboard')
       } catch (error) {
-        if (error.includes("already exists")) {
-          message.error("User already exists. Please log in."); // ✅ Same error style
-        } else {
-          message.error(error || "Registration failed");
-        }
+        errorMessage.value = 'Signup failed. Try again.'
       }
-    };
+    }
 
-    return { email, password, confirmPassword, handleSignup, isFormValid };
+    return { name, email, password, confirmPassword, handleSignup, errorMessage }
   },
-};
+}
 </script>
+
+<style scoped>
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.input-group {
+  width: 100%;
+  max-width: 280px;
+  margin-bottom: 15px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  background: #f8f9fa;
+  transition: 0.3s;
+}
+
+input:focus {
+  border-color: #0074e4;
+  background: #fff;
+}
+
+.btn {
+  width: 100%;
+  max-width: 280px;
+  padding: 12px;
+  background: #0074e4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  background: #005bb5;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+</style>
