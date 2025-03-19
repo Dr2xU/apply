@@ -1,5 +1,5 @@
 const cron = require('node-cron')
-const { fetchAndSaveJobs } = require('../controllers/remoteJobController')
+const { fetchAndSaveJobs } = require('../controllers/remoteJobsController') // ✅ Fixed import path
 
 const scheduleJobUpdates = () => {
   cron.schedule('0 */6 * * *', async () => {

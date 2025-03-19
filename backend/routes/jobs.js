@@ -1,49 +1,74 @@
 const express = require('express')
+const { getLastJobUpdateTimestamp } = require('../config/db')
+const { fetchAndSaveJobs } = require('../controllers/remoteJobsController')
 
-module.exports = (jobs) => {
-  if (!jobs) {
-    throw new Error('❌ jobs container is undefined in jobsRoutes!')
+module.exports = (jobsContainer) => {
+  if (!jobsContainer) {
+    throw new Error('❌ jobsContainer is undefined in jobsRoutes!')
   }
 
   const router = express.Router()
 
-  // ✅ GET all jobs
+  // ✅ GET all jobs (Fetch from API if empty)
   router.get('/', async (req, res) => {
     try {
-      const { resources } = await jobs.items.readAll().fetchAll()
-      res.json(resources)
+      console.log('🔍 Fetching jobs from database...')
+      const { resources } = await jobsContainer.items.readAll().fetchAll()
+
+      // ✅ Remove timestamp entry from response
+      const filteredJobs = resources.filter((job) => job.id !== 'last_update_timestamp')
+
+      if (filteredJobs.length === 0) {
+        console.warn('⚠ No jobs found in database. Fetching from Remotive API...')
+        await fetchAndSaveJobs(jobsContainer)
+        const { resources: newJobs } = await jobsContainer.items.readAll().fetchAll()
+        return res.json(newJobs.filter((job) => job.id !== 'last_update_timestamp'))
+      }
+
+      res.json(filteredJobs)
     } catch (error) {
       console.error('❌ Error fetching jobs:', error)
       res.status(500).json({ error: 'Failed to fetch jobs' })
     }
   })
 
-  // ✅ Manually update jobs (trigger fetch from Remotive API)
+  // ✅ GET last update timestamp
+  router.get('/last-update', async (req, res) => {
+    try {
+      const lastUpdate = await getLastJobUpdateTimestamp(jobsContainer)
+      if (!lastUpdate) {
+        console.log('⚠ No last update timestamp found. Creating initial timestamp...')
+        const now = new Date().toISOString()
+        await jobsContainer.items.upsert({ id: 'last_update_timestamp', timestamp: now })
+        return res.json({ lastUpdate: now })
+      }
+      res.json({ lastUpdate: lastUpdate.toISOString() })
+    } catch (error) {
+      console.error('❌ Error retrieving last update timestamp:', error)
+      res.status(500).json({ error: 'Failed to retrieve last update time' })
+    }
+  })
+
+  // ✅ Manually Trigger Job Update (Only if 6+ hours passed)
   router.get('/update', async (req, res) => {
     try {
-      const response = await fetch('https://remotive.com/api/remote-jobs')
-      const { jobs: newJobs } = await response.json()
+      console.log('🔄 Checking last job update timestamp...')
+      const lastUpdate = await getLastJobUpdateTimestamp(jobsContainer)
+      const now = new Date()
 
-      if (!newJobs || newJobs.length === 0) {
-        return res.status(400).json({ error: 'No new jobs found' })
+      if (lastUpdate && now - lastUpdate < 6 * 60 * 60 * 1000) {
+        console.log(`🛑 Skipping job update: Last updated at ${lastUpdate.toISOString()}`)
+        return res.json({ message: 'Job update skipped (last update < 6 hours ago).' })
       }
 
-      console.log(`🔄 Updating ${newJobs.length} jobs...`)
+      console.log('🔄 Requesting job update from Remotive API...')
+      await fetchAndSaveJobs(jobsContainer)
+      await jobsContainer.items.upsert({
+        id: 'last_update_timestamp',
+        timestamp: now.toISOString(),
+      })
 
-      // Delete old jobs
-      const { resources: oldJobs } = await jobs.items.readAll().fetchAll()
-      for (const job of oldJobs) {
-        await jobs.item(job.id, job.id).delete()
-      }
-
-      // Insert new jobs
-      for (const job of newJobs) {
-        job.id = Date.now().toString()
-        await jobs.items.create(job)
-      }
-
-      console.log('✅ Jobs successfully updated!')
-      res.json({ message: 'Jobs updated successfully', jobCount: newJobs.length })
+      res.json({ message: 'Jobs updated successfully' })
     } catch (error) {
       console.error('❌ Error updating jobs:', error)
       res.status(500).json({ error: 'Failed to update jobs' })

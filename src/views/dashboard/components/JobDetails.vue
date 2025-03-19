@@ -1,5 +1,5 @@
 <template>
-  <div class="job-details-container" v-if="job">
+  <div v-if="job" class="job-details-container">
     <div class="job-header">
       <!-- ✅ Company Logo and Name -->
       <div class="company-info">
@@ -10,15 +10,12 @@
         </div>
       </div>
 
-      <!-- ✅ Job Title -->
       <h2 class="job-title">{{ job.title }}</h2>
-
-      <!-- ✅ Metadata: Date, Applicants -->
       <p class="job-meta">
         <span>{{ repostedTime }}</span> · <span>Over 100 people clicked apply</span>
       </p>
 
-      <!-- ✅ Job Type, Salary & Tags (Max 5 per row) -->
+      <!-- ✅ Job Type, Salary & Tags -->
       <div class="job-tags">
         <n-tag type="success">{{ job.job_type }}</n-tag>
         <n-tag v-if="job.salary && job.salary !== 'Not specified'" type="warning">
@@ -31,63 +28,103 @@
 
       <!-- ✅ Apply & Save Buttons -->
       <div class="action-buttons">
-        <n-button type="primary" tag="a" :href="job.url" target="_blank">
-          Apply
-          <n-icon :component="ExternalLinkOutline" />
+        <n-button type="primary" @click="openJobPage">
+          <n-icon v-if="isApplied" name="check-circle" /> {{ isApplied ? 'Applied' : 'Apply' }}
         </n-button>
-        <n-button secondary>Save</n-button>
+        <n-button type="secondary" @click="toggleSave">
+          <n-icon v-if="isSaved" name="bookmark" /> {{ isSaved ? 'Unsave' : 'Save' }}
+        </n-button>
       </div>
     </div>
 
-    <!-- ✅ Viewed Status -->
-    <p v-if="isViewed" class="viewed-text">👀 Viewed</p>
+    <!-- ✅ Apply Confirmation Panel -->
+    <div v-if="showApplyConfirmation" class="apply-confirmation">
+      <p>Did you complete your application?</p>
+      <n-button type="success" @click="confirmApplication">Yes, I Applied</n-button>
+      <n-button type="error" @click="cancelApplication">No, Cancel</n-button>
+    </div>
 
-    <!-- ✅ About the Job -->
+    <!-- ✅ Job Description -->
     <div class="job-description">
       <h3>About the job</h3>
       <div class="formatted-description" v-html="formatDescription(job.description)"></div>
     </div>
   </div>
+
+  <!-- ✅ Show Message When No Jobs Are Found -->
+  <div v-else class="no-jobs-container">
+    <p>No jobs available. Please try again later.</p>
+  </div>
 </template>
 
 <script>
-import { defineComponent, computed } from 'vue'
+import { defineComponent, ref, computed, watch } from 'vue'
+import { useJobStore } from '@/stores/jobStore'
 import { NButton, NAvatar, NTag, NIcon } from 'naive-ui'
 
 export default defineComponent({
   components: { NButton, NAvatar, NTag, NIcon },
   props: {
     job: Object,
-    isViewed: Boolean, // ✅ Preserve "Viewed" status
+    isSaved: Boolean,
+    isApplied: Boolean,
   },
-  computed: {
-    computedLogo() {
-      return this.job.company_logo && this.job.company_logo.startsWith('http')
-        ? this.job.company_logo
+  setup(props) {
+    const jobStore = useJobStore()
+    const showApplyConfirmation = ref(false)
+
+    // ✅ Compute Company Logo
+    const computedLogo = computed(() => {
+      return props.job?.company_logo?.startsWith('http')
+        ? props.job.company_logo
         : 'https://via.placeholder.com/50?text=No+Logo'
-    },
-    repostedTime() {
-      if (!this.job.publication_date) return 'Reposted recently'
+    })
 
-      const pubDate = new Date(this.job.publication_date)
+    // ✅ Compute Reposted Time
+    const repostedTime = computed(() => {
+      if (!props.job?.publication_date) return 'Reposted recently'
+      const pubDate = new Date(props.job.publication_date)
       const now = new Date()
-      const diffTime = Math.abs(now - pubDate)
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const diffDays = Math.ceil(Math.abs(now - pubDate) / (1000 * 60 * 60 * 24))
 
-      if (diffDays === 0) return 'Reposted today'
-      if (diffDays === 1) return 'Reposted yesterday'
-      if (diffDays < 7) return `Reposted ${diffDays} days ago`
-      if (diffDays < 14) return `Reposted 1 week ago`
-      return `Reposted ${Math.floor(diffDays / 7)} weeks ago`
-    },
-  },
-  methods: {
-    formatDescription(text) {
+      return diffDays === 0
+        ? 'Reposted today'
+        : diffDays === 1
+          ? 'Reposted yesterday'
+          : `Reposted ${diffDays} days ago`
+    })
+
+    // ✅ Open Job Page & Confirm Application
+    const openJobPage = () => {
+      window.open(props.job.url, '_blank')
+      showApplyConfirmation.value = true
+    }
+
+    // ✅ Confirm Application
+    const confirmApplication = () => {
+      jobStore.applyJob(props.job.id) // ✅ Use Pinia action to apply job
+      showApplyConfirmation.value = false
+    }
+
+    // ✅ Cancel Application Confirmation
+    const cancelApplication = () => {
+      showApplyConfirmation.value = false
+    }
+
+    // ✅ Toggle Save State Using Pinia
+    const toggleSave = async () => {
+      await jobStore.toggleSave(props.job.id)
+    }
+
+    // ✅ Format Job Description
+    const formatDescription = (text) => {
       return text
         ? text.replace(/\n/g, '<br>').replace(/- /g, '• ')
         : '<p>No description available.</p>'
-    },
-    splitTagsIntoRows(tags, maxPerRow) {
+    }
+
+    // ✅ Split Tags into Rows
+    const splitTagsIntoRows = (tags, maxPerRow) => {
       if (!tags || tags.length === 0) return []
       return tags.reduce((acc, tag, index) => {
         const rowIndex = Math.floor(index / maxPerRow)
@@ -95,16 +132,51 @@ export default defineComponent({
         acc[rowIndex].push(tag)
         return acc
       }, [])
-    },
+    }
+
+    // ✅ Watch for Job Changes & Clear Confirmation
+    watch(
+      () => props.job?.id,
+      (newJobId, oldJobId) => {
+        if (!newJobId || newJobId !== oldJobId) {
+          showApplyConfirmation.value = false // ✅ Remove confirmation panel when switching jobs
+        }
+      },
+    )
+
+    return {
+      computedLogo,
+      repostedTime,
+      openJobPage,
+      confirmApplication,
+      cancelApplication,
+      toggleSave,
+      showApplyConfirmation,
+      formatDescription,
+      splitTagsIntoRows,
+    }
   },
 })
 </script>
 
 <style scoped>
+/* ✅ Job Details Container */
 .job-details-container {
   width: 65%;
   padding: 20px;
   overflow-y: auto;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ No Jobs Found */
+.no-jobs-container {
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+  font-size: 18px;
+  color: #666;
 }
 
 /* ✅ Company Section */
@@ -119,6 +191,7 @@ export default defineComponent({
   min-width: 60px;
   min-height: 60px;
   border-radius: 5px;
+  object-fit: cover;
 }
 .company-name {
   font-size: 18px;
@@ -130,6 +203,7 @@ export default defineComponent({
   font-size: 22px;
   font-weight: bold;
   margin-top: 10px;
+  color: #0073b1;
 }
 
 /* ✅ Metadata */
@@ -153,11 +227,21 @@ export default defineComponent({
   margin-top: 15px;
 }
 
-/* ✅ Viewed Status */
-.viewed-text {
-  font-size: 14px;
-  color: #777;
-  margin-top: 10px;
+/* ✅ Apply Confirmation Panel */
+.apply-confirmation {
+  margin-top: 20px;
+  padding: 15px;
+  background: #fff7e6;
+  border: 1px solid #ffa500;
+  border-radius: 5px;
+  text-align: center;
+  gap: 5px;
+}
+
+.apply-confirmation p {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 10px;
 }
 
 /* ✅ Job Description */

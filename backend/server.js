@@ -15,9 +15,9 @@ const startServer = async () => {
     console.log('🔄 Setting up database...')
     const { users, jobs } = await setupDatabase()
 
-    if (!jobs) {
+    if (!users || !jobs) {
       throw new Error(
-        '❌ jobsContainer is undefined after setupDatabase(). Check CosmosDB connection.',
+        '❌ Database containers are undefined after setupDatabase(). Check CosmosDB connection.',
       )
     }
 
@@ -25,8 +25,8 @@ const startServer = async () => {
 
     // ✅ Pass `users` and `jobs` containers when initializing routes
     app.use('/api/auth', authRoutes(users))
-    app.use('/api/jobs', jobsRoutes(jobs)) // ✅ Pass `jobs` correctly
-    app.use('/api/users', userRoutes(users)) // ✅ Register new route for marking jobs as viewed
+    app.use('/api/jobs', jobsRoutes(jobs)) // ✅ Pass jobsContainer
+    app.use('/api/users', userRoutes(users)) // ✅ Pass usersContainer
 
     const PORT = process.env.PORT || 5000
     app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`))

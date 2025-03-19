@@ -1,10 +1,12 @@
-const { container } = require('../config/db')
+const { jobContainer } = require('../config/db')
+const { getLastJobUpdateTimestamp } = require('../config/db')
+const crypto = require('crypto') // ✅ Ensures unique IDs
 
 // 🔹 Add a job
 const addJob = async (jobData) => {
   try {
-    jobData.id = Date.now().toString() // Unique ID for Cosmos DB
-    const { resource } = await container.items.create(jobData)
+    jobData.id = jobData.id ? jobData.id.toString() : crypto.randomUUID() // ✅ Use existing ID or generate a new one
+    const { resource } = await jobContainer.items.create(jobData)
     return resource
   } catch (error) {
     console.error('❌ Error adding job:', error.message || error)
@@ -15,9 +17,11 @@ const addJob = async (jobData) => {
 // 🔹 Get all jobs
 const getJobs = async () => {
   try {
-    const { resources } = await container.items
-      .query('SELECT * FROM c ORDER BY c.publication_date DESC') // ✅ Sorted at DB level
+    console.time('🔄 DB Query Time') // Measure query time
+    const { resources } = await jobContainer.items
+      .query('SELECT * FROM c ORDER BY c.publication_date DESC') // ✅ Limit query results
       .fetchAll()
+    console.timeEnd('🔄 DB Query Time')
     return resources
   } catch (error) {
     console.error('❌ Error fetching jobs:', error.message || error)
@@ -28,25 +32,35 @@ const getJobs = async () => {
 // 🔹 Update jobs: Fetch new jobs and remove outdated ones
 const updateJobs = async (newJobs) => {
   try {
+    console.log('🔄 Checking last job update timestamp...')
+    const lastUpdated = await getLastJobUpdateTimestamp()
+    const now = new Date()
+
+    // ✅ Enforce 6-hour update rule
+    if (lastUpdated && now - lastUpdated < 6 * 60 * 60 * 1000) {
+      console.log(`🛑 Skipping job update: Last updated at ${lastUpdated.toISOString()}.`)
+      return []
+    }
+
     console.log('🔄 Updating jobs...')
 
     // ✅ Step 1: Fetch old jobs
-    const { resources: oldJobs } = await container.items.readAll().fetchAll()
+    const { resources: oldJobs } = await jobContainer.items.readAll().fetchAll()
 
-    // ✅ Step 2: Delete old jobs (if any exist)
+    // ✅ Step 2: Delete old jobs
     if (oldJobs.length > 0) {
       console.log(`🗑️ Deleting ${oldJobs.length} old jobs...`)
       for (const job of oldJobs) {
-        await container.item(job.id, job.id).delete()
+        await jobContainer.item(job.id, job.id).delete()
       }
     }
 
-    // ✅ Step 3: Insert new jobs
+    // ✅ Step 3: Insert new jobs with unique IDs
     console.log(`✅ Adding ${newJobs.length} new jobs...`)
     const insertedJobs = []
     for (const job of newJobs) {
-      job.id = Date.now().toString() // Unique ID for Cosmos DB
-      const { resource } = await container.items.create(job)
+      job.id = job.id ? job.id.toString() : crypto.randomUUID() // ✅ Use provided ID or generate a new one
+      const { resource } = await jobContainer.items.create(job)
       insertedJobs.push(resource)
     }
 

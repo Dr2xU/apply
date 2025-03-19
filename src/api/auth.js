@@ -39,10 +39,10 @@ export const registerUser = async (email, password) => {
   }
 }
 
-// 🔹 Check Authentication Status (Use "token" consistently)
+// 🔹 Check Authentication Status
 export const checkAuthStatus = async () => {
   try {
-    const token = localStorage.getItem('token') // ✅ Now correctly matches loginUser()
+    const token = localStorage.getItem('token')
     if (!token) return false
 
     const response = await apiClient.get('/status', {
@@ -52,5 +52,22 @@ export const checkAuthStatus = async () => {
     return response.data.authenticated
   } catch (error) {
     return false
+  }
+}
+
+// 🔹 Logout User
+export const logoutUser = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (token) {
+      await apiClient.post('/logout', {}, { headers: { Authorization: `Bearer ${token}` } })
+    }
+  } catch (error) {
+    console.error('❌ Error during logout:', error)
+  } finally {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    sessionStorage.clear()
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   }
 }

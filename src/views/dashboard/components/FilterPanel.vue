@@ -1,71 +1,107 @@
 <template>
   <div class="filter-panel">
-    <!-- ✅ Job Categories -->
+    <!-- ✅ Job Filters with Active State -->
     <div
       class="filter-category"
-      v-for="filter in filters"
+      v-for="(filter, index) in filters"
       :key="filter.value"
+      :class="{ active: jobStore.selectedFilter === filter.value }"
       @click="setFilter(filter.value)"
+      @mouseenter="hoverIndex = index"
+      @mouseleave="hoverIndex = null"
+      role="button"
+      aria-pressed="jobStore.selectedFilter === filter.value"
+      tabindex="0"
+      :style="getHoverStyle(index)"
     >
-      <img :src="filter.icon" alt="icon" class="nav-icon-img" />
       {{ filter.label }}
     </div>
   </div>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
-import { NButton, NIcon } from 'naive-ui'
+<script setup>
+import { ref, nextTick } from 'vue'
+import { useJobStore } from '@/stores/jobStore'
 
-export default defineComponent({
-  components: { NButton, NIcon },
-  setup() {
-    const selectedFilter = ref('all')
+const jobStore = useJobStore()
+const hoverIndex = ref(null)
 
-    const worldIcon = new URL('@/assets/world.svg', import.meta.url).href
-    const persoIcon = new URL('@/assets/personalized.svg', import.meta.url).href
-    const viewedIcon = new URL('@/assets/viewed.svg', import.meta.url).href
-    const savedIcon = new URL('@/assets/bookmark.svg', import.meta.url).href
+const filters = [
+  { label: '🌍 All', value: 'all' },
+  { label: '🎯 For you', value: 'for you' },
+  { label: '🎉 New', value: 'new' },
+  { label: '👀 Seen', value: 'seen' },
+  { label: '⏳ Applied', value: 'applied' },
+  { label: '💾 Saved', value: 'saved' },
+]
 
-    const filters = [
-      { label: 'All', value: 'all', icon: worldIcon },
-      { label: 'For you', value: 'for you', icon: persoIcon },
-      { label: 'Viewed', value: 'viewed', icon: viewedIcon },
-      { label: 'Saved', value: 'saved', icon: savedIcon },
-    ]
-    const setFilter = (filter) => {
-      selectedFilter.value = filter
-      console.log('Filter selected:', filter)
-      emit('refresh-jobs', filter)
-    }
+const getHoverStyle = (index) => {
+  if (hoverIndex.value === null) return {}
 
-    return { filters, selectedFilter, setFilter }
-  },
-})
+  const distance = Math.abs(hoverIndex.value - index)
+  let scale = 1
+
+  if (distance === 0)
+    scale = 1.1 // Center filter (hovered) enlarges
+  else if (distance === 1)
+    scale = 1.05 // Neighbors slightly enlarge
+  else if (distance === 2) scale = 1.01 // Further neighbors get a small effect
+
+  return {
+    transform: `scale(${scale})`,
+    transition: 'transform 0.2s ease-in-out',
+  }
+}
+
+const setFilter = (filter) => {
+  if (jobStore.selectedFilter !== filter) {
+    console.log('🔄 Filter selected:', filter)
+    jobStore.selectedFilter = filter
+    jobStore.updateFilteredJobs(true) // ✅ Refresh job list and select first job
+
+    nextTick(() => {
+      const jobListContainer = document.querySelector('.job-list')
+      if (jobListContainer) {
+        jobListContainer.scrollTop = 0
+      }
+    })
+  }
+}
 </script>
 
 <style scoped>
 .filter-panel {
   display: flex;
   width: 100%;
-  gap: 20px;
+  gap: 15px;
   overflow-x: auto;
   white-space: nowrap;
   padding: 10px;
-  border-bottom: 1px solid #ddd;
-  background: white;
+  border-bottom: 2px solid #ddd;
+  background: #f9f9f9;
+  margin-top: 5px;
+  justify-content: center;
 }
 
 .filter-category {
-  margin-left: 150px;
-  display: flex;
-  align-items: center;
-  padding-left: 120px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  background: #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  user-select: none;
 }
 
-.nav-icon-img {
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
+.filter-category:hover {
+  background: #d6d6d6;
+}
+
+.filter-category.active {
+  background: #0073b1;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>

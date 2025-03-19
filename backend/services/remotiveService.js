@@ -1,20 +1,18 @@
 const axios = require('axios')
-const { jobContainer } = require('../config/db')
+const { setupDatabase } = require('../config/db')
 
-const REMOTIVE_API_URL = 'https://remotive.com/api/remote-jobs'
+const REMOTIVE_API_URL = 'https://remotive.io/api/remote-jobs'
 
-// ✅ Fetch jobs from Remotive API with optional filters
-const fetchRemoteJobs = async ({
-  category = '',
-  company_name = '',
-  search = '',
-  limit = 50,
-} = {}) => {
+const fetchRemoteJobs = async () => {
   try {
-    const params = new URLSearchParams({ category, company_name, search, limit }).toString()
-    const response = await axios.get(`${REMOTIVE_API_URL}?${params}`)
+    console.log('🔄 Fetching jobs from Remotive API...')
+    console.time('🔄 API Response Time') // Measure API response time
 
+    const response = await axios.get(REMOTIVE_API_URL, { timeout: 15000 })
+
+    console.timeEnd('🔄 API Response Time') // Log API response time
     console.log(`✅ Successfully fetched ${response.data.jobs.length} jobs from Remotive.`)
+
     return response.data.jobs
   } catch (error) {
     console.error('❌ Error fetching jobs from Remotive:', error.message)
@@ -22,41 +20,35 @@ const fetchRemoteJobs = async ({
   }
 }
 
-// ✅ Fetch jobs and store them in the database
 const fetchAndSaveJobs = async () => {
   try {
-    // Check last update timestamp
-    const { resources } = await jobContainer.items
-      .query('SELECT * FROM c ORDER BY c.timestamp DESC OFFSET 0 LIMIT 1')
-      .fetchAll()
+    console.log('🔄 Checking last job update timestamp...')
+    const { jobs } = await setupDatabase()
+    if (!jobs) throw new Error('❌ Jobs container is not initialized.')
 
-    const lastUpdated = resources.length ? new Date(resources[0].timestamp) : null
-    const now = new Date()
-
-    if (process.env.DISABLE_UPDATES === 'true') {
-      console.log('🛑 Job updates disabled (DISABLE_UPDATES=true). Skipping fetch.')
-      return
-    }
-
-    // Only update if 6+ hours have passed
-    if (lastUpdated && now - lastUpdated < 6 * 60 * 60 * 1000) {
-      console.log(`🛑 Skipping job update: Last updated at ${lastUpdated.toISOString()}.`)
-      return
-    }
-
-    // Fetch jobs from Remotive API
-    const jobs = await fetchRemoteJobs()
-    if (!jobs.length) {
+    console.log('🔄 Fetching jobs from Remotive API...')
+    const jobsList = await fetchRemoteJobs()
+    if (!jobsList.length) {
       console.warn('⚠ No new jobs retrieved from Remotive API.')
       return
     }
 
-    // Save jobs to database
-    const jobData = { id: Date.now().toString(), timestamp: now.toISOString(), jobs }
-    await jobContainer.items.create(jobData)
-    console.log(`✅ ${jobs.length} remote jobs saved to database at ${now.toISOString()}.`)
+    console.log(`📦 Saving ${jobsList.length} jobs into the database.`)
+    for (const job of jobsList) {
+      job.id = job.id.toString() // Ensure ID is a string
+      await jobs.items.upsert(job)
+    }
+
+    // ✅ Ensure timestamp entry exists
+    console.log('🕒 Updating last job update timestamp...')
+    await jobs.items.upsert({
+      id: 'last_update_timestamp',
+      timestamp: new Date().toISOString(),
+    })
+
+    console.log(`✅ ${jobsList.length} jobs saved to the database.`)
   } catch (error) {
-    console.error('❌ Error saving jobs:', error)
+    console.error('❌ Error during job update:', error.message)
   }
 }
 

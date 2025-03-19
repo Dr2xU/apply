@@ -1,7 +1,7 @@
 <template>
   <n-card
     class="job-card"
-    :class="{ viewed: isViewed, selected: isSelected }"
+    :class="{ seen: isSeen, applied: isApplied, saved: isSaved, selected: isSelected }"
     @click="$emit('select-job', job)"
   >
     <div class="job-card-content">
@@ -9,7 +9,13 @@
       <div class="job-info">
         <h3 class="job-title">{{ job.title }}</h3>
         <p class="company-name">{{ job.company_name }}</p>
-        <p v-if="isViewed && !isSelected" class="viewed-text">👀 Viewed</p>
+
+        <!-- ✅ Improved state display -->
+        <div class="state-icons">
+          <span v-if="isSeen && !isApplied && !isSelected" class="state-text">👀</span>
+          <span v-if="isApplied && !isSelected" class="state-text">⏳</span>
+          <span v-if="isSaved && !isSelected" class="state-text">💾</span>
+        </div>
       </div>
     </div>
   </n-card>
@@ -23,12 +29,13 @@ export default defineComponent({
   components: { NCard, NAvatar },
   props: {
     job: Object,
-    isViewed: Boolean, // ✅ Track if job is viewed
-    isSelected: Boolean, // ✅ Track if job is selected
+    isSeen: Boolean,
+    isSaved: Boolean,
+    isApplied: Boolean,
+    isSelected: Boolean,
   },
   computed: {
     computedLogo() {
-      console.log('🔹 Checking job logo:', this.job.company_logo)
       return this.job.company_logo && this.job.company_logo.startsWith('http')
         ? this.job.company_logo
         : 'https://via.placeholder.com/50?text=No+Logo'
@@ -42,17 +49,18 @@ export default defineComponent({
 /* ✅ Default Job Card Style */
 .job-card {
   display: flex;
-  padding: 5px;
+  padding: 10px;
   cursor: pointer;
   border-bottom: 1px solid #ddd;
-  transition:
-    background 0.2s ease-in-out,
-    border 0.2s ease-in-out;
+  border-radius: 6px;
+  background: white;
+  transition: all 0.2s ease-in-out;
 }
 
 /* ✅ Hover Effect */
 .job-card:hover {
-  background: #f3f3f3;
+  background: #f9f9f9;
+  transform: scale(1.02);
 }
 
 /* ✅ Style for Viewed Jobs */
@@ -62,8 +70,8 @@ export default defineComponent({
 
 /* ✅ Style for Selected Job */
 .job-card.selected {
-  background: #d1e8ff; /* Slightly darker blue */
-  border-left: 4px solid #0073b1; /* Blue border */
+  background: #d1e8ff;
+  border-left: 4px solid #0073b1;
   font-weight: bold;
 }
 
@@ -81,12 +89,16 @@ export default defineComponent({
   min-width: 50px;
   min-height: 50px;
   border-radius: 5px;
+  object-fit: cover;
 }
 
 /* ✅ Job Info */
 .job-info {
   flex-grow: 1;
   margin-left: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* ✅ Job Title */
@@ -95,6 +107,7 @@ export default defineComponent({
   color: #0073b1;
   font-weight: 600;
   cursor: pointer;
+  margin-bottom: 2px;
 }
 
 /* ✅ Company Name */
@@ -102,12 +115,29 @@ export default defineComponent({
   font-size: 13px;
   font-weight: bold;
   color: #333;
+  margin-bottom: 4px;
 }
 
-/* ✅ Viewed Text */
-.viewed-text {
+/* ✅ State Icons */
+.state-icons {
+  display: flex;
+  gap: 6px;
+}
+
+/* ✅ State Text */
+.state-text {
+  font-size: 14px;
+  color: #555;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.state-text:hover {
+  opacity: 0.8;
+}
+
+/* ✅ Debugging */
+.debug-text {
   font-size: 12px;
-  color: #777;
-  margin-top: 4px;
+  color: gray;
 }
 </style>
