@@ -1,61 +1,80 @@
 <script setup>
-import { computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useJobStore } from '@/stores/jobStore'
-import { NInput, NSelect, NLayoutHeader } from 'naive-ui'
+import { NInput, NSelect, NLayoutHeader, NButton, useMessage } from 'naive-ui'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const jobStore = useJobStore()
+const message = useMessage()
 
-// ✅ Computed refs ensure two-way binding with jobStore
-const searchQuery = computed({
-  get: () => jobStore.searchQuery,
-  set: (value) => {
-    console.log('🔍 Search Query Updated:', value)
-    jobStore.updateFilters({
-      searchQuery: value,
-      selectedCategory: jobStore.selectedCategory,
-      selectedLocation: jobStore.selectedLocation,
-    })
-  },
-})
+// Create local refs for the inputs - start with store values
+const searchQueryLocal = ref(jobStore.searchQuery)
+const selectedCategoryLocal = ref(jobStore.selectedCategory)
+const selectedLocationLocal = ref(jobStore.selectedLocation)
 
-const selectedCategory = computed({
-  get: () => jobStore.selectedCategory,
-  set: (value) => {
-    console.log('📂 Category Filter Updated:', value)
-    jobStore.updateFilters({
-      searchQuery: jobStore.searchQuery,
-      selectedCategory: value,
-      selectedLocation: jobStore.selectedLocation,
-    })
-  },
-})
+// Direct methods to update filters following the FilterPanel pattern
+const updateSearchQuery = (value) => {
+  console.log('🔍 Search Query Updated:', value)
+  searchQueryLocal.value = value
+  jobStore.searchQuery = value // Directly set the store property
+  jobStore.updateFilteredJobs(true) // Refresh job list immediately
+}
 
-const selectedLocation = computed({
-  get: () => jobStore.selectedLocation,
-  set: (value) => {
-    console.log('📍 Location Filter Updated:', value)
-    jobStore.updateFilters({
-      searchQuery: jobStore.searchQuery,
-      selectedCategory: jobStore.selectedCategory,
-      selectedLocation: value,
-    })
-  },
-})
+const updateSelectedCategory = (value) => {
+  console.log('📂 Category Filter Updated:', value)
+  selectedCategoryLocal.value = value
+  jobStore.selectedCategory = value // Directly set the store property
+  jobStore.updateFilteredJobs(true) // Refresh job list immediately
+}
 
-// ✅ Watcher to debug changes in store
+const updateSelectedLocation = (value) => {
+  console.log('📍 Location Filter Updated:', value)
+  selectedLocationLocal.value = value
+  jobStore.selectedLocation = value // Directly set the store property
+  jobStore.updateFilteredJobs(true) // Refresh job list immediately
+}
+
+const handleForceUpdate = async () => {
+  try {
+    const result = await jobStore.forceUpdateJobs()
+
+    if (result.success) {
+      message.success('Jobs refreshed successfully!')
+    } else {
+      message.error(`Failed to refresh jobs: ${result.error}`)
+    }
+  } catch (error) {
+    message.error('Error refreshing jobs')
+    console.error('Error in refresh:', error)
+  }
+}
+
+// Keep local refs synced with store values (in case they change elsewhere)
 watch(
-  () => [jobStore.searchQuery, jobStore.selectedCategory, jobStore.selectedLocation],
-  ([newSearch, newCategory, newLocation]) => {
-    console.log('🟢 Store Filters Changed:', { newSearch, newCategory, newLocation })
+  () => jobStore.searchQuery,
+  (newValue) => {
+    searchQueryLocal.value = newValue
   },
-  { deep: true },
 )
 
-// ✅ Navigation
+watch(
+  () => jobStore.selectedCategory,
+  (newValue) => {
+    selectedCategoryLocal.value = newValue
+  },
+)
+
+watch(
+  () => jobStore.selectedLocation,
+  (newValue) => {
+    selectedLocationLocal.value = newValue
+  },
+)
+
+// ✅ Navigation functions - unchanged
 const navigateTo = (route) => router.push({ name: route })
 const handleLogout = () => {
   authStore.logout()
@@ -64,7 +83,7 @@ const handleLogout = () => {
 }
 const handleLogoClick = () => router.push('/dashboard')
 
-// ✅ Fix Scroll Blocking Warning - Passive Event Listener
+// ✅ Fix Scroll Blocking Warning - unchanged
 onMounted(() => {
   document.addEventListener(
     'wheel',
@@ -88,27 +107,58 @@ onMounted(() => {
 
       <div class="filter-container">
         <n-input
-          v-model="searchQuery"
+          v-model:value="searchQueryLocal"
           placeholder="🔍 Search jobs..."
           clearable
           class="search-box"
+          @update:value="updateSearchQuery"
         />
 
         <n-select
-          v-model="selectedCategory"
+          v-model:value="selectedCategoryLocal"
           :options="jobStore.categoryOptions"
           placeholder="📂 Category"
           clearable
           class="filter-box"
+          @update:value="updateSelectedCategory"
         />
 
         <n-select
-          v-model="selectedLocation"
+          v-model:value="selectedLocationLocal"
           :options="jobStore.locationOptions"
           placeholder="📍 Location"
           clearable
           class="filter-box"
+          @update:value="updateSelectedLocation"
         />
+
+        <!-- Add this button to your navbar component -->
+        <n-button
+          type="primary"
+          size="small"
+          @click="handleForceUpdate"
+          :loading="jobStore.loading"
+          class="refresh-button"
+        >
+          <template #icon>
+            <n-icon>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+            </n-icon>
+          </template>
+        </n-button>
       </div>
 
       <div class="nav-icons">
@@ -192,5 +242,14 @@ onMounted(() => {
   margin-left: 20px;
   height: 30px;
   cursor: pointer;
+}
+
+.refresh-button {
+  margin-left: 10px;
+}
+
+/* Optional: Add a nice hover effect */
+.refresh-button:hover {
+  background-color: red;
 }
 </style>

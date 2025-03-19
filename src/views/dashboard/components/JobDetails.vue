@@ -12,17 +12,17 @@
 
       <h2 class="job-title">{{ job.title }}</h2>
       <p class="job-meta">
-        <span>{{ repostedTime }}</span> · <span>Over 100 people clicked apply</span>
+        <span>{{ repostedTime }}</span>
       </p>
 
       <!-- ✅ Job Type, Salary & Tags -->
       <div class="job-tags">
-        <n-tag type="success">{{ job.job_type }}</n-tag>
+        <n-tag type="success">{{ formatJobType(job.job_type) }}</n-tag>
         <n-tag v-if="job.salary && job.salary !== 'Not specified'" type="warning">
           💰 {{ job.salary }}
         </n-tag>
       </div>
-      <div v-for="(row, index) in splitTagsIntoRows(job.tags, 5)" :key="index" class="job-tags">
+      <div v-for="(row, index) in splitTagsIntoRows(job.tags, 6)" :key="index" class="job-tags">
         <n-tag v-for="tag in row" :key="tag" type="info">{{ tag }}</n-tag>
       </div>
 
@@ -33,6 +33,9 @@
         </n-button>
         <n-button type="secondary" @click="toggleSave">
           <n-icon v-if="isSaved" name="bookmark" /> {{ isSaved ? 'Unsave' : 'Save' }}
+        </n-button>
+        <n-button type="info" @click="showCvUploadModal = true">
+          <n-icon name="file-text" /> Tailor CV & Cover Letter
         </n-button>
       </div>
     </div>
@@ -123,10 +126,35 @@ export default defineComponent({
         : '<p>No description available.</p>'
     }
 
+    // Add this method to your setup function
+    const formatJobType = (jobType) => {
+      if (!jobType) return ''
+
+      // Split by underscore, capitalize first letter of each word, then join with space
+      return jobType
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    }
+
     // ✅ Split Tags into Rows
     const splitTagsIntoRows = (tags, maxPerRow) => {
       if (!tags || tags.length === 0) return []
-      return tags.reduce((acc, tag, index) => {
+
+      // Format each tag first (capitalize)
+      const formattedTags = tags.map((tag) => {
+        // Handle case where tag might be undefined or not a string
+        if (!tag) return ''
+
+        // Split by spaces and capitalize first letter of each word
+        return tag
+          .split(' ')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ')
+      })
+
+      // Then arrange into rows
+      return formattedTags.reduce((acc, tag, index) => {
         const rowIndex = Math.floor(index / maxPerRow)
         if (!acc[rowIndex]) acc[rowIndex] = []
         acc[rowIndex].push(tag)
@@ -154,6 +182,7 @@ export default defineComponent({
       showApplyConfirmation,
       formatDescription,
       splitTagsIntoRows,
+      formatJobType,
     }
   },
 })
@@ -162,7 +191,7 @@ export default defineComponent({
 <style scoped>
 /* ✅ Job Details Container */
 .job-details-container {
-  width: 65%;
+  width: 75%;
   padding: 20px;
   overflow-y: auto;
   background: white;

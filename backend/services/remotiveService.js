@@ -8,7 +8,7 @@ const fetchRemoteJobs = async () => {
     console.log('🔄 Fetching jobs from Remotive API...')
     console.time('🔄 API Response Time') // Measure API response time
 
-    const response = await axios.get(REMOTIVE_API_URL, { timeout: 15000 })
+    const response = await axios.get(REMOTIVE_API_URL, { timeout: 20000 })
 
     console.timeEnd('🔄 API Response Time') // Log API response time
     console.log(`✅ Successfully fetched ${response.data.jobs.length} jobs from Remotive.`)

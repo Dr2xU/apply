@@ -14,13 +14,20 @@ onMounted(async () => {
   await jobStore.fetchJobs()
   nextTick(() => {
     if (jobList.value) {
+      // Add scroll event listener
       jobList.value.addEventListener('scroll', onScroll, { passive: true })
     }
   })
 })
 
-// ✅ Computed properties for dynamic updates
-const filteredJobs = computed(() => jobStore.filteredJobs)
+// ✅ Clean up event listener when component is unmounted
+onUnmounted(() => {
+  if (jobList.value) {
+    jobList.value.removeEventListener('scroll', onScroll)
+  }
+})
+
+// ✅ Using getLimitedJobs from the store
 const limitedJobs = computed(() => jobStore.getLimitedJobs)
 
 // ✅ Watch for filter changes & update job list
@@ -31,18 +38,16 @@ watch(
     jobStore.selectedLocation,
     jobStore.selectedFilter,
   ],
-  ([newSearch, newCategory, newLocation, newFilter]) => {
-    console.log('🔄 Filters Changed - Updating Job List...', {
-      newSearch,
-      newCategory,
-      newLocation,
-      newFilter,
-    })
-    jobStore.updateFilteredJobs(true) // ✅ Dynamically update job list
+  () => {
+    console.log('🔄 Index.vue watch triggered for filter changes')
 
+    // Force a manual update of the filtered jobs
+    jobStore.updateFilteredJobs(true)
+
+    // Reset scroll position
     nextTick(() => {
       if (jobList.value) {
-        jobList.value.scrollTop = 0 // ✅ Reset scroll position
+        jobList.value.scrollTop = 0
       }
     })
   },
@@ -52,20 +57,15 @@ watch(
 // ✅ Handle Scroll Event for Lazy Loading
 const onScroll = () => {
   if (!jobList.value) return
+
   const { scrollTop, scrollHeight, clientHeight } = jobList.value
 
-  // If user reaches near the bottom, load more jobs
-  if (scrollTop + clientHeight >= scrollHeight - 50) {
+  // If we're near the bottom (within 100px), load more jobs
+  if (scrollTop + clientHeight >= scrollHeight - 100) {
+    console.log('🔄 Near bottom, loading more jobs...')
     jobStore.loadMoreJobs()
   }
 }
-
-// ✅ Cleanup event listener on unmount
-onUnmounted(() => {
-  if (jobList.value) {
-    jobList.value.removeEventListener('scroll', onScroll)
-  }
-})
 </script>
 
 <template>
@@ -75,6 +75,7 @@ onUnmounted(() => {
       <FilterPanel />
 
       <div class="job-layout">
+        <!-- This is where the jobs are displayed -->
         <div class="job-list" ref="jobList">
           <JobCard
             v-for="job in limitedJobs"
@@ -87,7 +88,20 @@ onUnmounted(() => {
             :loading="jobStore.loading"
             @select-job="jobStore.selectJob"
           />
+          <!-- Add a loading indicator for when more jobs are being loaded -->
+          <div v-if="jobStore.loading" class="loading-more">Loading more jobs...</div>
+          <!-- Add a message when all jobs are loaded -->
+          <div
+            v-else-if="
+              limitedJobs.length === jobStore.filteredJobs.length && limitedJobs.length > 0
+            "
+            class="no-more-jobs"
+          >
+            All jobs loaded
+          </div>
         </div>
+
+        <!-- Job details section -->
         <JobDetails
           v-if="jobStore.selectedJob"
           :job="jobStore.selectedJob"
@@ -122,5 +136,18 @@ onUnmounted(() => {
   border-right: 1px solid #ddd;
   height: 80vh;
   padding: 10px;
+}
+
+/* Add some styling for the loading indicators */
+.loading-more,
+.no-more-jobs {
+  text-align: center;
+  padding: 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+.no-more-jobs {
+  color: #999;
 }
 </style>

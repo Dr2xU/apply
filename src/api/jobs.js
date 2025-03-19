@@ -5,7 +5,7 @@ const API_URL = 'http://localhost:5000/api/jobs'
 
 const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -43,22 +43,26 @@ export const getJobs = async () => {
 }
 
 // ✅ Manually Trigger Job Fetch (Only If Needed)
-export const updateJobs = async () => {
+// In your API file
+export const updateJobs = async (force = false) => {
   try {
     console.log('🔍 Checking last job update timestamp...')
     console.time('🔄 Total Job Update Time')
 
-    const lastUpdateResponse = await apiClient.get('/last-update')
-    const lastUpdate = new Date(lastUpdateResponse.data.lastUpdate)
-    const now = new Date()
+    // Skip the timestamp check if force is true
+    if (!force) {
+      const lastUpdateResponse = await apiClient.get('/last-update')
+      const lastUpdate = new Date(lastUpdateResponse.data.lastUpdate)
+      const now = new Date()
 
-    if (lastUpdate && now - lastUpdate < 6 * 60 * 60 * 1000) {
-      console.log(`🛑 Skipping job update: Last updated at ${lastUpdate.toISOString()}`)
-      return { message: 'Job update skipped (last update < 6 hours ago).' }
+      if (lastUpdate && now - lastUpdate < 6 * 60 * 60 * 1000) {
+        console.log(`🛑 Skipping job update: Last updated at ${lastUpdate.toISOString()}`)
+        return { message: 'Job update skipped (last update < 6 hours ago).' }
+      }
     }
 
-    console.log('🔄 Requesting job update...')
-    const response = await apiClient.get('/update')
+    console.log(`🔄 Requesting job update${force ? ' (forced)' : ''}...`)
+    const response = await apiClient.get(`/update${force ? '?force=true' : ''}`)
     console.timeEnd('🔄 Total Job Update Time')
 
     console.log('✅ Jobs Updated:', response.data)

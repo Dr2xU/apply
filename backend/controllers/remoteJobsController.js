@@ -23,6 +23,7 @@ const fetchAndSaveJobs = async (jobsContainer) => {
         ? job.company_logo
         : 'https://dummyimage.com/50x50/cccccc/000000.png&text=No+Logo',
       category: job.category,
+      tags: job.tags,
       job_type: job.job_type,
       publication_date: new Date(job.publication_date).toISOString(),
       candidate_required_location: job.candidate_required_location || 'Worldwide',

@@ -56,11 +56,6 @@ module.exports = (jobsContainer) => {
       const lastUpdate = await getLastJobUpdateTimestamp(jobsContainer)
       const now = new Date()
 
-      if (lastUpdate && now - lastUpdate < 6 * 60 * 60 * 1000) {
-        console.log(`🛑 Skipping job update: Last updated at ${lastUpdate.toISOString()}`)
-        return res.json({ message: 'Job update skipped (last update < 6 hours ago).' })
-      }
-
       console.log('🔄 Requesting job update from Remotive API...')
       await fetchAndSaveJobs(jobsContainer)
       await jobsContainer.items.upsert({
