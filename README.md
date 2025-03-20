@@ -89,7 +89,7 @@ Nous avons utilisé **GitHub** pour suivre nos tâches et assurer une gestion ef
 1️⃣ **Clonez le dépôt :**
 
 ```bash
-git clone https://github.com/Dr2xU/apply.git
+git clone https://github.com/Dr2xU/apply.git apply
 cd apply
 ```
 
