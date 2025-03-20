@@ -1,3 +1,10 @@
+/**
+ * Authentication API Service
+ *
+ * Handles user authentication including login, registration,
+ * authentication status check, and logout functionality.
+ */
+
 import axios from 'axios'
 
 const API_URL = 'http://localhost:5000/api/auth'
@@ -8,15 +15,20 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ✅ Login User and Save Token & User ID
+/**
+ * Logs in the user and saves the authentication token & user ID.
+ * @param {string} email - User's email.
+ * @param {string} password - User's password.
+ * @returns {Promise<Object>} The response data containing the authentication token.
+ * @throws {Error} Throws an error if login fails.
+ */
 export const loginUser = async (email, password) => {
   try {
     const response = await apiClient.post('/login', { email, password })
 
     if (response.data.token && response.data.userId) {
-      localStorage.setItem('token', response.data.token) // ✅ Save token
-      localStorage.setItem('userId', response.data.userId) // ✅ Save user ID
-      console.log('✅ Token and userId saved:', response.data)
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('userId', response.data.userId)
     } else {
       console.warn('⚠ No token or userId received from server.')
     }
@@ -28,18 +40,35 @@ export const loginUser = async (email, password) => {
   }
 }
 
-// ✅ User Registration
+/**
+ * Registers a new user in the system.
+ * @param {string} email - User's email.
+ * @param {string} password - User's password.
+ * @returns {Promise<Object>} The response data containing user details.
+ * @throws {Error} Throws an error if registration fails.
+ */
 export const registerUser = async (email, password) => {
   try {
     const response = await apiClient.post('/register', { email, password })
+
+    if (response.data.token && response.data.userId) {
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('userId', response.data.userId)
+    } else {
+      console.warn('⚠ No token or userId received from server.')
+    }
+
     return response.data
   } catch (error) {
     console.error('❌ Registration Error:', error.response?.data || error.message)
-    throw error.response?.data?.error || 'Registration failed.'
+    throw new Error(error.response?.data?.error || 'Registration failed.')
   }
 }
 
-// 🔹 Check Authentication Status
+/**
+ * Checks the user's authentication status by verifying the token.
+ * @returns {Promise<boolean>} Returns true if authenticated, false otherwise.
+ */
 export const checkAuthStatus = async () => {
   try {
     const token = localStorage.getItem('token')
@@ -55,7 +84,10 @@ export const checkAuthStatus = async () => {
   }
 }
 
-// 🔹 Logout User
+/**
+ * Logs out the user by removing authentication tokens and clearing session data.
+ * @returns {Promise<void>}
+ */
 export const logoutUser = async () => {
   try {
     const token = localStorage.getItem('token')

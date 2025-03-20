@@ -1,5 +1,21 @@
+/**
+ * User Routes
+ *
+ * Provides endpoints for managing user job interactions, including:
+ * - Retrieving job states (seen, saved, applied)
+ * - Marking jobs as seen
+ * - Saving and unsaving jobs
+ * - Deleting saved jobs
+ * - Marking jobs as applied
+ */
+
 const express = require('express')
 
+/**
+ * Configures user-related routes.
+ * @param {Object} usersContainer - The CosmosDB container for users.
+ * @returns {express.Router} Configured Express router.
+ */
 module.exports = (usersContainer) => {
   if (!usersContainer) {
     throw new Error('❌ usersContainer is undefined in usersRoutes!')
@@ -8,16 +24,14 @@ module.exports = (usersContainer) => {
   const router = express.Router()
 
   /**
-   * ✅ Fetch ALL job states (applied, saved, seen) in ONE request
+   * GET /user-jobs - Fetch all job states (seen, saved, applied) for a user.
    */
   router.get('/user-jobs', async (req, res) => {
     try {
       const { userId } = req.query
-      if (!userId) {
-        return res.status(400).json({ error: 'Missing userId' })
-      }
+      if (!userId) return res.status(400).json({ error: 'Missing userId' })
 
-      console.log(`📌 Fetching all job states for userId=${userId}`)
+      console.log(`📌 Fetching job states for userId=${userId}`)
 
       const { resources: users } = await usersContainer.items
         .query({
@@ -31,7 +45,6 @@ module.exports = (usersContainer) => {
       }
 
       const user = users[0]
-
       res.json({
         seenJobs: user.seenJobs || [],
         savedJobs: user.savedJobs || [],
@@ -44,14 +57,12 @@ module.exports = (usersContainer) => {
   })
 
   /**
-   * ✅ Mark Job as Seen (Avoids duplicate updates)
+   * POST /see-job - Mark a job as seen by the user.
    */
   router.post('/see-job', async (req, res) => {
     try {
       const { userId, jobId } = req.body
-      if (!userId || !jobId) {
-        return res.status(400).json({ error: 'Missing userId or jobId' })
-      }
+      if (!userId || !jobId) return res.status(400).json({ error: 'Missing userId or jobId' })
 
       console.log(`📌 Marking job as seen: userId=${userId}, jobId=${jobId}`)
 
@@ -62,9 +73,7 @@ module.exports = (usersContainer) => {
         })
         .fetchAll()
 
-      if (users.length === 0) {
-        return res.status(404).json({ error: `User not found: ${userId}` })
-      }
+      if (users.length === 0) return res.status(404).json({ error: `User not found: ${userId}` })
 
       const user = users[0]
       user.seenJobs = user.seenJobs || []
@@ -82,14 +91,12 @@ module.exports = (usersContainer) => {
   })
 
   /**
-   * ✅ Save/Unsave Job (Avoid redundant updates)
+   * POST /save-job - Toggle save/unsave job for a user.
    */
   router.post('/save-job', async (req, res) => {
     try {
       const { userId, jobId } = req.body
-      if (!userId || !jobId) {
-        return res.status(400).json({ error: 'Missing userId or jobId' })
-      }
+      if (!userId || !jobId) return res.status(400).json({ error: 'Missing userId or jobId' })
 
       console.log(`📌 Toggling saved job: userId=${userId}, jobId=${jobId}`)
 
@@ -100,18 +107,14 @@ module.exports = (usersContainer) => {
         })
         .fetchAll()
 
-      if (users.length === 0) {
-        return res.status(404).json({ error: `User not found: ${userId}` })
-      }
+      if (users.length === 0) return res.status(404).json({ error: `User not found: ${userId}` })
 
       const user = users[0]
       user.savedJobs = user.savedJobs || []
 
-      if (user.savedJobs.includes(jobId)) {
-        user.savedJobs = user.savedJobs.filter((id) => id !== jobId)
-      } else {
-        user.savedJobs.push(jobId)
-      }
+      user.savedJobs.includes(jobId)
+        ? (user.savedJobs = user.savedJobs.filter((id) => id !== jobId))
+        : user.savedJobs.push(jobId)
 
       await usersContainer.item(user.id, user.id).replace(user)
 
@@ -123,14 +126,12 @@ module.exports = (usersContainer) => {
   })
 
   /**
-   * ✅ Delete a Saved Job
+   * DELETE /delete-saved-job - Remove a saved job from a user's list.
    */
   router.delete('/delete-saved-job', async (req, res) => {
     try {
       const { userId, jobId } = req.body
-      if (!userId || !jobId) {
-        return res.status(400).json({ error: 'Missing userId or jobId' })
-      }
+      if (!userId || !jobId) return res.status(400).json({ error: 'Missing userId or jobId' })
 
       console.log(`📌 Removing saved job: userId=${userId}, jobId=${jobId}`)
 
@@ -141,9 +142,7 @@ module.exports = (usersContainer) => {
         })
         .fetchAll()
 
-      if (users.length === 0) {
-        return res.status(404).json({ error: `User not found: ${userId}` })
-      }
+      if (users.length === 0) return res.status(404).json({ error: `User not found: ${userId}` })
 
       const user = users[0]
       user.savedJobs = user.savedJobs || []
@@ -161,14 +160,12 @@ module.exports = (usersContainer) => {
   })
 
   /**
-   * ✅ Mark Job as Applied (Avoid duplicate updates)
+   * POST /apply-job - Mark a job as applied by the user.
    */
   router.post('/apply-job', async (req, res) => {
     try {
       const { userId, jobId } = req.body
-      if (!userId || !jobId) {
-        return res.status(400).json({ error: 'Missing userId or jobId' })
-      }
+      if (!userId || !jobId) return res.status(400).json({ error: 'Missing userId or jobId' })
 
       console.log(`📌 Marking job as applied: userId=${userId}, jobId=${jobId}`)
 
@@ -179,9 +176,7 @@ module.exports = (usersContainer) => {
         })
         .fetchAll()
 
-      if (users.length === 0) {
-        return res.status(404).json({ error: `User not found: ${userId}` })
-      }
+      if (users.length === 0) return res.status(404).json({ error: `User not found: ${userId}` })
 
       const user = users[0]
       user.appliedJobs = user.appliedJobs || []

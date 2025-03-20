@@ -1,6 +1,6 @@
 <template>
   <n-message-provider>
-    <div class="app-container">
+    <div class="app-container" role="main" aria-label="Application container">
       <router-view />
     </div>
   </n-message-provider>
@@ -13,13 +13,12 @@ export default {
 </script>
 
 <style scoped>
-/* ✅ Make sure the app takes the full screen */
 .app-container {
-  width: 100vw; /* Full width */
-  height: 100vh; /* Full height */
+  width: 100vw;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Prevent scrolling */
+  overflow: hidden;
 }
 </style>

@@ -1,36 +1,44 @@
 <script setup>
 import { computed, onMounted, ref, watch, nextTick, onUnmounted } from 'vue'
-import { useJobStore } from '@/stores/jobStore'
-import Navbar from './components/Navbar.vue'
+import { useJobStore } from '@/stores/jobs'
+import Navbar from '../../components/Navbar.vue'
 import JobCard from './components/JobCard.vue'
 import JobDetails from './components/JobDetails.vue'
 import FilterPanel from './components/FilterPanel.vue'
 
 const jobStore = useJobStore()
-const jobList = ref(null) // Reference for scroll detection
+const jobList = ref(null)
 
-// ✅ Fetch jobs when component is mounted
+/**
+ * Fetch jobs when component is mounted.
+ * Adds event listener for infinite scroll.
+ */
 onMounted(async () => {
   await jobStore.fetchJobs()
   nextTick(() => {
     if (jobList.value) {
-      // Add scroll event listener
       jobList.value.addEventListener('scroll', onScroll, { passive: true })
     }
   })
 })
 
-// ✅ Clean up event listener when component is unmounted
+/**
+ * Clean up event listener when component is unmounted.
+ */
 onUnmounted(() => {
   if (jobList.value) {
     jobList.value.removeEventListener('scroll', onScroll)
   }
 })
 
-// ✅ Using getLimitedJobs from the store
+/**
+ * Computed property for getting a limited number of jobs from the store.
+ */
 const limitedJobs = computed(() => jobStore.getLimitedJobs)
 
-// ✅ Watch for filter changes & update job list
+/**
+ * Watches for changes in filters and updates job list accordingly.
+ */
 watch(
   () => [
     jobStore.searchQuery,
@@ -39,12 +47,11 @@ watch(
     jobStore.selectedFilter,
   ],
   () => {
-    console.log('🔄 Index.vue watch triggered for filter changes')
+    console.log('🔄 Filter change detected in Dashboard.vue')
 
-    // Force a manual update of the filtered jobs
     jobStore.updateFilteredJobs(true)
 
-    // Reset scroll position
+    // Reset scroll position to top when filters change
     nextTick(() => {
       if (jobList.value) {
         jobList.value.scrollTop = 0
@@ -54,13 +61,15 @@ watch(
   { deep: true },
 )
 
-// ✅ Handle Scroll Event for Lazy Loading
+/**
+ * Handles infinite scrolling for loading more jobs when reaching the bottom.
+ */
 const onScroll = () => {
   if (!jobList.value) return
 
   const { scrollTop, scrollHeight, clientHeight } = jobList.value
 
-  // If we're near the bottom (within 100px), load more jobs
+  // If user scrolls near the bottom, load more jobs
   if (scrollTop + clientHeight >= scrollHeight - 100) {
     console.log('🔄 Near bottom, loading more jobs...')
     jobStore.loadMoreJobs()
@@ -75,7 +84,6 @@ const onScroll = () => {
       <FilterPanel />
 
       <div class="job-layout">
-        <!-- This is where the jobs are displayed -->
         <div class="job-list" ref="jobList">
           <JobCard
             v-for="job in limitedJobs"
@@ -88,9 +96,7 @@ const onScroll = () => {
             :loading="jobStore.loading"
             @select-job="jobStore.selectJob"
           />
-          <!-- Add a loading indicator for when more jobs are being loaded -->
           <div v-if="jobStore.loading" class="loading-more">Loading more jobs...</div>
-          <!-- Add a message when all jobs are loaded -->
           <div
             v-else-if="
               limitedJobs.length === jobStore.filteredJobs.length && limitedJobs.length > 0
@@ -101,7 +107,6 @@ const onScroll = () => {
           </div>
         </div>
 
-        <!-- Job details section -->
         <JobDetails
           v-if="jobStore.selectedJob"
           :job="jobStore.selectedJob"
@@ -122,6 +127,7 @@ const onScroll = () => {
   flex-direction: column;
   align-items: center;
   width: 100%;
+  font-family: 'Source Sans Pro', sans-serif;
 }
 
 .job-layout {
@@ -138,7 +144,6 @@ const onScroll = () => {
   padding: 10px;
 }
 
-/* Add some styling for the loading indicators */
 .loading-more,
 .no-more-jobs {
   text-align: center;

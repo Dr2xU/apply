@@ -1,32 +1,32 @@
 <template>
   <div class="auth-container">
     <div class="auth-box">
-      <!-- Sign In Form (Fixed Left) -->
       <div class="form-container sign-in-container">
-        <h2>Sign In</h2>
-        <LoginForm />
+        <h2>Welcome Back!</h2>
+        <LoginForm @authenticated="handleAuthSuccess" aria-labelledby="login-section" />
       </div>
 
-      <!-- Sign Up Form (Fixed Right) -->
       <div class="form-container sign-up-container">
-        <h2>Sign Up</h2>
-        <SignupForm />
+        <h2>Welcome to Apply!</h2>
+        <SignupForm @authenticated="handleAuthSuccess" aria-labelledby="signup-section" />
       </div>
 
-      <!-- Moving Overlay Section -->
-      <div class="overlay-container" :class="{ 'move-left': !isLogin }">
+      <div class="overlay-container" :class="{ 'move-left': !isLogin }" role="complementary">
         <div class="overlay">
           <div class="overlay-panel">
-            <h2>{{ isLogin ? 'Join Us!' : 'Welcome Back!' }}</h2>
+            <h1>Apply to Jobs with Apply</h1>
+            <h2>
+              {{ isLogin ? 'Ready to Elevate Your Career?' : 'Already Have an Account?' }}
+            </h2>
             <p>
               {{
                 isLogin
-                  ? 'Create an account to access exclusive features.'
-                  : 'We are so happy to have you here again!'
+                  ? 'Unlock exclusive job opportunities, save your favorites, and track applications effortlessly. Sign up today!'
+                  : 'Great to see you again! Let’s continue your journey towards the perfect job.'
               }}
             </p>
             <button class="ghost" @click="toggleForm">
-              {{ isLogin ? 'Sign up' : 'Sign in' }}
+              {{ isLogin ? 'Create an Account' : 'Log In Now' }}
             </button>
           </div>
         </div>
@@ -37,6 +37,7 @@
 
 <script>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import LoginForm from './components/LoginForm.vue'
 import SignupForm from './components/SignupForm.vue'
 
@@ -44,18 +45,29 @@ export default {
   components: { LoginForm, SignupForm },
   setup() {
     const isLogin = ref(true)
+    const router = useRouter()
 
+    /**
+     * Toggles between Sign-In and Sign-Up forms.
+     */
     const toggleForm = () => {
       isLogin.value = !isLogin.value
     }
 
-    return { isLogin, toggleForm }
+    /**
+     * Handles successful authentication (login or signup).
+     * Redirects user to the dashboard.
+     */
+    const handleAuthSuccess = () => {
+      router.push('/dashboard')
+    }
+
+    return { isLogin, toggleForm, handleAuthSuccess }
   },
 }
 </script>
 
 <style scoped>
-/* ✅ Full-Screen Container */
 .auth-container {
   width: 100vw;
   height: 100vh;
@@ -64,9 +76,9 @@ export default {
   align-items: center;
   background: #f5f7fa;
   overflow: hidden;
+  font-family: 'Source Sans Pro', sans-serif;
 }
 
-/* ✅ Authentication Box */
 .auth-box {
   position: relative;
   width: 100vw;
@@ -78,7 +90,6 @@ export default {
   display: flex;
 }
 
-/* ✅ Form Containers */
 .form-container {
   width: 50%;
   height: 100%;
@@ -91,7 +102,6 @@ export default {
   transition: opacity 0.6s ease-in-out;
 }
 
-/* ✅ Fix Sign-In & Sign-Up Positions */
 .sign-in-container {
   position: absolute;
   left: 0;
@@ -102,32 +112,34 @@ export default {
   right: 0;
 }
 
-/* ✅ Moving Overlay */
 .overlay-container {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 50%;
-  height: 100%;
+  width: 45%;
+  height: 60%;
   transition: transform 0.6s ease-in-out;
-  background: linear-gradient(135deg, #00a884, #0074e4);
+  background: #0e4099;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   text-align: center;
   z-index: 3;
+  border-radius: 50px;
+  margin-top: 180px;
+  padding-left: 40px;
 }
 
-/* ✅ Moves the Overlay Left */
 .move-left {
   transform: translateX(-100%);
+  background: #18a058;
+  padding-left: 35px;
 }
 
-/* ✅ Overlay Panel */
 .overlay-panel {
   width: 80%;
-  padding: 50px;
+  margin-left: 10px;
 }
 
 .ghost {
@@ -136,6 +148,11 @@ export default {
   color: #fff;
   padding: 10px 20px;
   cursor: pointer;
-  border-radius: 20px;
+  border-radius: 50px;
+}
+
+h1 {
+  font-size: 30px;
+  margin-bottom: 70px;
 }
 </style>

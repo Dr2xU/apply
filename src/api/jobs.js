@@ -1,6 +1,11 @@
+/**
+ * Jobs API Service
+ *
+ * Handles fetching job listings, triggering updates, and retrieving job details.
+ */
+
 import axios from 'axios'
 
-// ✅ API Base URL
 const API_URL = 'http://localhost:5000/api/jobs'
 
 const apiClient = axios.create({
@@ -9,20 +14,21 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ✅ Fetch Jobs from Backend (Trigger Update if Empty)
+/**
+ * Fetches jobs from the backend. If the database is empty, triggers an update and retries.
+ * @returns {Promise<Array>} List of job objects.
+ * @throws {Error} Throws an error if the job fetch fails.
+ */
 export const getJobs = async () => {
   try {
-    console.time('🔄 Job Fetch Time') // Measure time
+    console.time('🔄 Job Fetch Time') // Measure fetch time
     const response = await apiClient.get('/')
-    console.timeEnd('🔄 Job Fetch Time') // End time
-
-    console.log('🔹 API Response:', response.data)
+    console.timeEnd('🔄 Job Fetch Time') // End time measurement
 
     if (!Array.isArray(response.data) || response.data.length === 0) {
       console.warn('⚠ No jobs found in database. Triggering job update...')
-      await updateJobs() // ✅ If empty, trigger update
-
-      const updatedResponse = await apiClient.get('/') // ✅ Fetch again
+      await updateJobs()
+      const updatedResponse = await apiClient.get('/')
       return updatedResponse.data
     }
 
@@ -34,7 +40,7 @@ export const getJobs = async () => {
       company_logo:
         job.company_logo && job.company_logo.startsWith('http')
           ? job.company_logo
-          : 'https://via.placeholder.com/50?text=No+Logo', // ✅ Ensure valid logo
+          : 'https://via.placeholder.com/50?text=No+Logo',
     }))
   } catch (error) {
     console.error('❌ Error fetching jobs:', error.message || error)
@@ -42,14 +48,17 @@ export const getJobs = async () => {
   }
 }
 
-// ✅ Manually Trigger Job Fetch (Only If Needed)
-// In your API file
+/**
+ * Manually triggers a job update. Checks last update timestamp before requesting.
+ * @param {boolean} force - If true, forces an update regardless of last timestamp.
+ * @returns {Promise<Object>} Response message from the server.
+ * @throws {Error} Throws an error if the update fails.
+ */
 export const updateJobs = async (force = false) => {
   try {
     console.log('🔍 Checking last job update timestamp...')
     console.time('🔄 Total Job Update Time')
 
-    // Skip the timestamp check if force is true
     if (!force) {
       const lastUpdateResponse = await apiClient.get('/last-update')
       const lastUpdate = new Date(lastUpdateResponse.data.lastUpdate)
@@ -65,7 +74,6 @@ export const updateJobs = async (force = false) => {
     const response = await apiClient.get(`/update${force ? '?force=true' : ''}`)
     console.timeEnd('🔄 Total Job Update Time')
 
-    console.log('✅ Jobs Updated:', response.data)
     return response.data
   } catch (error) {
     console.error('❌ Error updating jobs:', error.message || error)
@@ -73,7 +81,12 @@ export const updateJobs = async (force = false) => {
   }
 }
 
-// ✅ Fetch Job Details by ID (Fixed API Path)
+/**
+ * Fetches job details by job ID.
+ * @param {string} jobId - The ID of the job to fetch details for.
+ * @returns {Promise<Object>} The job details object.
+ * @throws {Error} Throws an error if the job ID is missing or the request fails.
+ */
 export const getJobById = async (jobId) => {
   try {
     if (!jobId) {
@@ -81,9 +94,8 @@ export const getJobById = async (jobId) => {
     }
 
     console.log(`🔎 Fetching job details for ID: ${jobId}`)
-    const response = await apiClient.get(`/job/${jobId}`) // ✅ Fixed API route
+    const response = await apiClient.get(`/job/${jobId}`)
 
-    console.log('✅ Job Details:', response.data)
     return response.data || {}
   } catch (error) {
     console.error(`❌ Error fetching job details (ID: ${jobId}):`, error.message || error)

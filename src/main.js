@@ -5,21 +5,24 @@ import { createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { create, NButton, NCard, NForm, NFormItem, NInput, NMessageProvider } from 'naive-ui'
 
-// ✅ Initialize Naive UI components
+// Initialize Naive UI with only required components
 const naive = create({
   components: [NButton, NCard, NForm, NFormItem, NInput, NMessageProvider],
 })
 
 const app = createApp(App)
 
-// ✅ Setup Pinia before using `useAuthStore`
+// Setup Pinia store
 const pinia = createPinia()
 app.use(pinia)
 
-// ✅ Now safely access the auth store
+// Initialize Auth Store after setting up Pinia
 const authStore = useAuthStore()
-if (localStorage.getItem('authToken')) {
-  authStore.token = localStorage.getItem('authToken')
+
+// Load auth token from localStorage (if available)
+const storedToken = localStorage.getItem('authToken')
+if (storedToken) {
+  authStore.token = storedToken
 }
 
 app.use(router)

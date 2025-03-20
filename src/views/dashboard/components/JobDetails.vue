@@ -1,21 +1,28 @@
 <template>
+  <!-- Job details container -->
   <div v-if="job" class="job-details-container">
     <div class="job-header">
-      <!-- ✅ Company Logo and Name -->
+      <!-- Company Information: Logo and Name -->
       <div class="company-info">
-        <n-avatar :src="computedLogo" size="large" class="company-logo" />
+        <n-avatar
+          :src="computedLogo"
+          size="large"
+          class="company-logo"
+          :alt="`Company logo of ${job.company_name}`"
+        />
         <div>
           <h3 class="company-name">{{ job.company_name }}</h3>
           <p class="job-location">{{ job.candidate_required_location }}</p>
         </div>
       </div>
 
+      <!-- Job Title & Metadata -->
       <h2 class="job-title">{{ job.title }}</h2>
       <p class="job-meta">
         <span>{{ repostedTime }}</span>
       </p>
 
-      <!-- ✅ Job Type, Salary & Tags -->
+      <!-- Job Type, Salary & Tags -->
       <div class="job-tags">
         <n-tag type="success">{{ formatJobType(job.job_type) }}</n-tag>
         <n-tag v-if="job.salary && job.salary !== 'Not specified'" type="warning">
@@ -26,35 +33,34 @@
         <n-tag v-for="tag in row" :key="tag" type="info">{{ tag }}</n-tag>
       </div>
 
-      <!-- ✅ Apply & Save Buttons -->
+      <!-- Apply & Save Buttons -->
       <div class="action-buttons">
         <n-button type="primary" @click="openJobPage">
-          <n-icon v-if="isApplied" name="check-circle" /> {{ isApplied ? 'Applied' : 'Apply' }}
+          {{ isApplied ? 'Applied' : 'Apply' }}
         </n-button>
         <n-button type="secondary" @click="toggleSave">
-          <n-icon v-if="isSaved" name="bookmark" /> {{ isSaved ? 'Unsave' : 'Save' }}
-        </n-button>
-        <n-button type="info" @click="showCvUploadModal = true">
-          <n-icon name="file-text" /> Tailor CV & Cover Letter
+          {{ isSaved ? 'Unsave' : 'Save' }}
         </n-button>
       </div>
     </div>
 
-    <!-- ✅ Apply Confirmation Panel -->
+    <!-- Apply Confirmation Panel -->
     <div v-if="showApplyConfirmation" class="apply-confirmation">
       <p>Did you complete your application?</p>
-      <n-button type="success" @click="confirmApplication">Yes, I Applied</n-button>
-      <n-button type="error" @click="cancelApplication">No, Cancel</n-button>
+      <div class="button-group">
+        <n-button type="success" @click="confirmApplication">Yes, I Applied</n-button>
+        <n-button type="error" @click="cancelApplication">No, Cancel</n-button>
+      </div>
     </div>
 
-    <!-- ✅ Job Description -->
+    <!-- Job Description -->
     <div class="job-description">
       <h3>About the job</h3>
       <div class="formatted-description" v-html="formatDescription(job.description)"></div>
     </div>
   </div>
 
-  <!-- ✅ Show Message When No Jobs Are Found -->
+  <!-- Message When No Jobs Are Found -->
   <div v-else class="no-jobs-container">
     <p>No jobs available. Please try again later.</p>
   </div>
@@ -62,7 +68,7 @@
 
 <script>
 import { defineComponent, ref, computed, watch } from 'vue'
-import { useJobStore } from '@/stores/jobStore'
+import { useJobStore } from '@/stores/jobs'
 import { NButton, NAvatar, NTag, NIcon } from 'naive-ui'
 
 export default defineComponent({
@@ -76,14 +82,20 @@ export default defineComponent({
     const jobStore = useJobStore()
     const showApplyConfirmation = ref(false)
 
-    // ✅ Compute Company Logo
+    /**
+     * Computes the company logo URL.
+     * Uses a placeholder image if no valid logo is available.
+     */
     const computedLogo = computed(() => {
       return props.job?.company_logo?.startsWith('http')
         ? props.job.company_logo
         : 'https://via.placeholder.com/50?text=No+Logo'
     })
 
-    // ✅ Compute Reposted Time
+    /**
+     * Computes the reposted time based on the job's publication date.
+     * Returns a human-readable string indicating how long ago the job was reposted.
+     */
     const repostedTime = computed(() => {
       if (!props.job?.publication_date) return 'Reposted recently'
       const pubDate = new Date(props.job.publication_date)
@@ -97,64 +109,64 @@ export default defineComponent({
           : `Reposted ${diffDays} days ago`
     })
 
-    // ✅ Open Job Page & Confirm Application
+    /**
+     * Opens the job application page in a new tab and shows confirmation.
+     */
     const openJobPage = () => {
       window.open(props.job.url, '_blank')
-      showApplyConfirmation.value = true
+      if (!props.isApplied) {
+        showApplyConfirmation.value = true
+      }
     }
 
-    // ✅ Confirm Application
+    /**
+     * Confirms the job application and updates the application state in the store.
+     */
     const confirmApplication = () => {
-      jobStore.applyJob(props.job.id) // ✅ Use Pinia action to apply job
+      jobStore.applyJob(props.job.id)
       showApplyConfirmation.value = false
     }
 
-    // ✅ Cancel Application Confirmation
+    /**
+     * Cancels the application confirmation panel.
+     */
     const cancelApplication = () => {
       showApplyConfirmation.value = false
     }
 
-    // ✅ Toggle Save State Using Pinia
+    /**
+     * Toggles the saved state of a job.
+     */
     const toggleSave = async () => {
       await jobStore.toggleSave(props.job.id)
     }
 
-    // ✅ Format Job Description
+    /**
+     * Formats job descriptions by replacing line breaks and bullet points for better readability.
+     */
     const formatDescription = (text) => {
       return text
         ? text.replace(/\n/g, '<br>').replace(/- /g, '• ')
         : '<p>No description available.</p>'
     }
 
-    // Add this method to your setup function
+    /**
+     * Formats job types by replacing underscores with spaces and capitalizing each word.
+     */
     const formatJobType = (jobType) => {
       if (!jobType) return ''
-
-      // Split by underscore, capitalize first letter of each word, then join with space
       return jobType
         .split('_')
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ')
     }
 
-    // ✅ Split Tags into Rows
+    /**
+     * Splits job tags into rows for better display layout.
+     */
     const splitTagsIntoRows = (tags, maxPerRow) => {
       if (!tags || tags.length === 0) return []
-
-      // Format each tag first (capitalize)
-      const formattedTags = tags.map((tag) => {
-        // Handle case where tag might be undefined or not a string
-        if (!tag) return ''
-
-        // Split by spaces and capitalize first letter of each word
-        return tag
-          .split(' ')
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ')
-      })
-
-      // Then arrange into rows
-      return formattedTags.reduce((acc, tag, index) => {
+      return tags.reduce((acc, tag, index) => {
         const rowIndex = Math.floor(index / maxPerRow)
         if (!acc[rowIndex]) acc[rowIndex] = []
         acc[rowIndex].push(tag)
@@ -162,12 +174,14 @@ export default defineComponent({
       }, [])
     }
 
-    // ✅ Watch for Job Changes & Clear Confirmation
+    /**
+     * Watches for job changes and clears the application confirmation panel when switching jobs.
+     */
     watch(
       () => props.job?.id,
       (newJobId, oldJobId) => {
         if (!newJobId || newJobId !== oldJobId) {
-          showApplyConfirmation.value = false // ✅ Remove confirmation panel when switching jobs
+          showApplyConfirmation.value = false
         }
       },
     )
@@ -189,7 +203,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* ✅ Job Details Container */
 .job-details-container {
   width: 75%;
   padding: 20px;
@@ -197,9 +210,9 @@ export default defineComponent({
   background: white;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-family: 'Source Sans Pro', sans-serif;
 }
 
-/* ✅ No Jobs Found */
 .no-jobs-container {
   width: 100%;
   text-align: center;
@@ -208,40 +221,30 @@ export default defineComponent({
   color: #666;
 }
 
-/* ✅ Company Section */
 .company-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .company-logo {
   width: 60px;
   height: 60px;
-  min-width: 60px;
-  min-height: 60px;
   border-radius: 5px;
   object-fit: cover;
 }
+
 .company-name {
   font-size: 18px;
   font-weight: bold;
 }
 
-/* ✅ Job Title */
 .job-title {
   font-size: 22px;
   font-weight: bold;
-  margin-top: 10px;
   color: #0073b1;
 }
 
-/* ✅ Metadata */
-.job-meta {
-  font-size: 14px;
-  color: #666;
-}
-
-/* ✅ Tags */
 .job-tags {
   margin-top: 10px;
   display: flex;
@@ -249,14 +252,12 @@ export default defineComponent({
   gap: 8px;
 }
 
-/* ✅ Buttons */
 .action-buttons {
   display: flex;
   gap: 12px;
   margin-top: 15px;
 }
 
-/* ✅ Apply Confirmation Panel */
 .apply-confirmation {
   margin-top: 20px;
   padding: 15px;
@@ -273,10 +274,17 @@ export default defineComponent({
   margin-bottom: 10px;
 }
 
-/* ✅ Job Description */
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
 .job-description {
   margin-top: 20px;
 }
+
 .formatted-description {
   white-space: pre-wrap;
   word-wrap: break-word;

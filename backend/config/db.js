@@ -1,24 +1,40 @@
+/**
+ * Database Configuration
+ *
+ * This module connects to Azure CosmosDB and ensures the existence of the required containers.
+ * It provides a setup function to initialize the database and a utility function to retrieve the last job update timestamp.
+ */
+
 require('dotenv').config()
 const { CosmosClient } = require('@azure/cosmos')
 
+// Load environment variables for database connection
 const endpoint = process.env.COSMOS_ENDPOINT
 const key = process.env.COSMOS_KEY
 const databaseId = process.env.COSMOS_DATABASE
 const containerUsersId = process.env.COSMOS_CONTAINER_USERS
 const containerJobsId = process.env.COSMOS_CONTAINER_JOBS
 
+// Validate required environment variables
 if (!endpoint || !key || !databaseId || !containerUsersId || !containerJobsId) {
   console.error('❌ Missing CosmosDB credentials in .env file.')
   throw new Error('Missing CosmosDB credentials.')
 }
 
+// Initialize CosmosDB client
 const cosmosClient = new CosmosClient({ endpoint, key })
 
-let database, users, jobs // Singleton references
+// Singleton references to prevent multiple connections
+let database, users, jobs
 
+/**
+ * Sets up the CosmosDB database and ensures that required containers exist.
+ * @returns {Promise<{ users: Object, jobs: Object }>} Database containers.
+ */
 const setupDatabase = async () => {
   try {
-    if (database && users && jobs) return { users, jobs } // ✅ Use existing connections
+    // Return existing connection if already initialized
+    if (database && users && jobs) return { users, jobs }
 
     console.log(`🔄 Connecting to CosmosDB: ${databaseId}...`)
     const { database: dbInstance } = await cosmosClient.databases.createIfNotExists({
@@ -27,21 +43,21 @@ const setupDatabase = async () => {
     database = dbInstance
     console.log(`✅ Connected to CosmosDB: ${databaseId}`)
 
-    // ✅ Ensure Users container exists
+    // Ensure Users container exists
     const { container: usersContainer } = await database.containers.createIfNotExists({
       id: containerUsersId,
       partitionKey: { kind: 'Hash', paths: ['/id'] },
     })
     users = usersContainer
-    console.log(`✅ Users container ready: ${users.id}`)
+    console.log(`✅ Users container initialized: ${users.id}`)
 
-    // ✅ Ensure Jobs container exists
+    // Ensure Jobs container exists
     const { container: jobsContainer } = await database.containers.createIfNotExists({
       id: containerJobsId,
       partitionKey: { kind: 'Hash', paths: ['/id'] },
     })
     jobs = jobsContainer
-    console.log(`✅ Jobs container ready: ${jobs.id}`)
+    console.log(`✅ Jobs container initialized: ${jobs.id}`)
 
     return { users, jobs }
   } catch (err) {
@@ -50,11 +66,15 @@ const setupDatabase = async () => {
   }
 }
 
-// ✅ Ensure jobs is initialized before querying
+/**
+ * Retrieves the last job update timestamp from the database.
+ * @param {Object} jobsContainer - The CosmosDB jobs container.
+ * @returns {Promise<Date|null>} The last update timestamp or null if not found.
+ */
 const getLastJobUpdateTimestamp = async (jobsContainer) => {
   try {
     if (!jobsContainer) {
-      console.error('❌ jobs container is not initialized.')
+      console.error('❌ Jobs container is not initialized.')
       return null
     }
 
@@ -63,7 +83,7 @@ const getLastJobUpdateTimestamp = async (jobsContainer) => {
       .fetchAll()
 
     if (!resources.length || !resources[0].timestamp) {
-      console.log('⚠ No timestamp found in DB.')
+      console.warn('⚠ No timestamp found in DB.')
       return null
     }
 

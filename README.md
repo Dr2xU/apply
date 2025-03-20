@@ -1,62 +1,80 @@
-# 🚀 Plateforme de Recherche d'Emplois à Distance
+# 🚀 Apply: Plateforme de Recherche d'Emplois à Distance
 
 ## 🎯 L’objectif du projet
 
-Notre plateforme révolutionnaire simplifie la recherche d'emplois en télétravail en permettant aux utilisateurs d'accéder aux meilleures offres en quelques clics. Grâce à une interface intuitive et des fonctionnalités avancées, postuler à un emploi n’a jamais été aussi rapide et efficace !
+Apply est une plateforme innovante qui simplifie la recherche d'emplois en télétravail. Elle permet aux utilisateurs d’accéder rapidement aux meilleures offres, de filtrer les résultats selon leurs critères, et de postuler en quelques clics. Grâce à une **interface fluide et intuitive**, ainsi qu’une **gestion dynamique des offres en temps réel**, cette plateforme optimise l’expérience utilisateur pour les chercheurs d’emploi.
+
+---
 
 ## 🌟 Les fonctionnalités principales
 
-### 🔍 Recherche optimisée
+### 🔍 Recherche avancée et gestion des offres
 
-- **Filtres intelligents** : Trouvez les offres adaptées grâce à des critères avancés (catégorie, type de contrat, localisation, etc.).
-- **Détails complets des offres** : Consultez des informations précises et détaillées avant de postuler.
-- **Gestion des favoris** : Sauvegardez les offres qui vous intéressent pour les retrouver facilement.
+- **Filtres intelligents** : Recherche par **catégorie**, **localisation**, **type de contrat**, et **mots-clés**.
+- **Favoris et gestion des candidatures** : Les utilisateurs peuvent **enregistrer** les offres qui les intéressent et suivre celles pour lesquelles ils ont postulé.
+- **Affichage des offres en temps réel** : Synchronisation avec une API d'offres d'emploi.
 
-### 🚀 Expérience utilisateur exceptionnelle
+### 🚀 Expérience utilisateur optimisée
 
-- **Interface moderne et fluide** développée avec Vue.js.
-- **Navigation intuitive** avec Vue Router pour une expérience utilisateur optimale.
-- **Affichage dynamique** des offres grâce à une gestion réactive des données.
+- **Interface moderne et fluide** développée avec **Vue.js** et **Naive UI**.
+- **Navigation intuitive** avec **Vue Router** et une gestion **optimisée des états** via **Pinia**.
+- **Accessibilité améliorée** : Navigation **100% clavier compatible**, support **ARIA**, et **mode sombre**.
 
 ### 🔒 Sécurité & Performance
 
-- **Authentification sécurisée** avec gestion avancée des utilisateurs.
-- **Utilisation de Pinia** pour gérer l’état global de l’application et garantir une expérience fluide.
-- **Intégration d'une API** pour récupérer les offres d'emploi en temps réel.
+- **Authentification sécurisée** avec gestion des utilisateurs via **JWT**.
+- **Optimisation des performances** via **lazy loading des composants et routes**.
+- **Gestion centralisée de l’état** avec **Pinia**, garantissant une mise à jour **instantanée et fluide** des offres.
+
+---
 
 ## 👥 Qui a fait quoi ?
 
-### Wael & Thanina - Experts en développement Web
+### **Wael & Thanina**
 
-- **Wael** : Développement du backend, mise en place de l’API, gestion de la base de données et sécurisation des routes.
-- **Thanina** : Développement du frontend, intégration de Vue.js, création des composants et mise en place de l’interface utilisateur.
+- **Wael** : Développement du backend (création des routes, middleware, contrôleurs et services), la mise en place de l’API pour récupérer les offres d’emploi, la gestion complète de la base de données (modèles et schémas), ainsi que la sécurisation des routes et de l’authentification des utilisateurs.
+- **Thanina** : A contribué en réalisant la recherche et l’intégration de l’API, en participant à la conception et au design du frontend (maquettage et mise en page des composants Vue.js), ainsi qu’en aidant à la structuration de la base de données et à son initialisation.
+
+---
 
 ## 📌 Comment nous nous sommes organisés ?
 
-Nous avons structuré notre travail en deux grandes phases :
+Le projet a été structuré en **deux grandes phases** :
 
-1. **Phase backend** :
-   - Création de l’API pour récupérer les offres d’emploi.
-   - Mise en place de la base de données et des modèles utilisateurs.
-   - Sécurisation des endpoints.
-2. **Phase frontend** :
-   - Développement de l’interface utilisateur avec Vue.js.
-   - Création des composants et intégration de Vue Router.
-   - Gestion des états globaux avec Pinia.
+1️⃣ **Phase Backend**
 
-Nous avons utilisé GitHub pour organiser notre collaboration, gérer les tâches et assurer un suivi efficace du projet.
+- Création de l’API pour récupérer les offres d’emploi.
+- Mise en place de la base de données CosmosDB.
+- Sécurisation des endpoints et gestion des utilisateurs.
 
-## 🔧 Les difficultés rencontrées et les solutions apportées
+2️⃣ **Phase Frontend**
+
+- Développement de l'interface utilisateur avec **Vue.js**.
+- Mise en place des **composants interactifs et réactifs**.
+- Gestion des états avec **Pinia**, et optimisation des **transitions et animations**.
+
+Nous avons utilisé **GitHub** pour suivre nos tâches et assurer une gestion efficace du projet.
+
+---
+
+## 🔧 Les difficultés rencontrées et solutions apportées
 
 ### 📌 Problème : Affichage des offres avec gestion des états dynamiques
 
-- **Difficulté** : La mise à jour des offres en fonction des filtres posait des problèmes de réactivité.
-- **Solution** : Mise en place d’une gestion avancée des états avec Pinia pour une mise à jour en temps réel et fluide.
+- **Difficulté** : Les offres ne se mettaient pas à jour en fonction des filtres.
+- **Solution** : **Pinia** a été utilisé pour une mise à jour en **temps réel** et fluide.
 
 ### 📌 Problème : Filtres dynamiques dans la barre de navigation
 
-- **Difficulté** : La synchronisation des filtres avec les résultats affichés provoquait des incohérences.
-- **Solution** : Utilisation de **computed properties** et intégration avancée de Vue Router pour une meilleure gestion des requêtes.
+- **Difficulté** : L’application des filtres perturbait l’affichage des résultats.
+- **Solution** : Utilisation de **computed properties** et **Vue Router** pour une gestion optimisée.
+
+### 📌 Problème : Navigation et accessibilité
+
+- **Difficulté** : L’application n’était pas totalement accessible au clavier et aux lecteurs d’écran.
+- **Solution** : Ajout des **raccourcis clavier (`Tab`, `Enter`, `Arrow Keys`)**, gestion **ARIA**, et implémentation du **mode sombre**.
+
+---
 
 ## 📥 Comment installer et lancer l’application ?
 
@@ -64,44 +82,58 @@ Nous avons utilisé GitHub pour organiser notre collaboration, gérer les tâche
 
 - **Node.js** (version 16+)
 - **NPM** ou **Yarn**
+- **MongoDB CosmosDB** pour la base de données (ou une alternative locale).
 
 ### 📌 Installation rapide
 
-1. **Clonez le dépôt**
+1️⃣ **Clonez le dépôt :**
 
-   ```bash
-   git clone https://github.com/nom-du-repo.git
-   cd nom-du-repo
-   ```
+```bash
+git clone https://github.com/Dr2xU/apply.git
+cd apply
+```
 
-Installez les dépendances
+2️⃣ **Installez les dépendances :**
 
-bash
-Toujours afficher les détails
-
-Copier
+```bash
 npm install
-Configurez votre environnement
+```
 
-Dupliquez .env.example en .env et renseignez vos informations API et base de données.
+3️⃣ **Configurez votre environnement :**
 
-🚀 Lancer l’application
-Backend
-bash
-Toujours afficher les détails
+- **Backend** : Dupliquez `.env.example` en `.env` et ajoutez vos informations CosmosDB & JWT.
+- **Frontend** : Vérifiez l'URL API dans `api/jobs.js` et `api/auth.js`.
 
-Copier
+---
+
+### 🚀 **Lancer l’application**
+
+#### **Backend**
+
+```bash
 cd backend
 npm run dev
-API en ligne sur <http://localhost:5000>
+```
 
-Frontend
-bash
-Toujours afficher les détails
+📌 **API en ligne sur** `http://localhost:5000`
 
-Copier
-cd ..
+#### **Frontend**
+
+```bash
+cd frontend
 npm run dev
-Interface accessible sur <http://localhost:5173>
+```
 
-📌 Ne manquez pas cette opportunité de rendre la recherche d'emploi plus simple et efficace !
+📌 **Interface accessible sur** `http://localhost:5173`
+
+---
+
+## **🚀 Fonctionnalités supplémentaires**
+
+| **Fonctionnalité**           | **Description**                                      | **Impact**                 |
+| ---------------------------- | ---------------------------------------------------- | -------------------------- |
+| ✅ **Lazy Loading**          | Chargement **à la demande** des composants et routes | ⬆️ **Rapidité**            |
+| ✅ **Accessibilité Avancée** | Navigation **100% clavier**, support **ARIA**        | ♿ **Meilleure inclusion** |
+| ✅ **Animations Fluides**    | Transitions douces sur les changements d’état        | 🔄 **UX améliorée**        |
+
+📌 **Ne manquez pas cette opportunité de rendre la recherche d'emploi plus simple et efficace !** 🎯

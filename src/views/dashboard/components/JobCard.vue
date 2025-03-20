@@ -3,18 +3,34 @@
     class="job-card"
     :class="{ seen: isSeen, applied: isApplied, saved: isSaved, selected: isSelected }"
     @click="$emit('select-job', job)"
+    @keydown.enter.space="$emit('select-job', job)"
+    role="button"
+    :aria-label="`Select job: ${job.title} at ${job.company_name}`"
+    :aria-selected="isSelected"
+    tabindex="0"
   >
     <div class="job-card-content">
-      <n-avatar v-if="computedLogo" :src="computedLogo" size="large" class="job-logo" />
+      <n-avatar
+        v-if="computedLogo"
+        :src="computedLogo"
+        size="large"
+        class="job-logo"
+        :alt="`Company logo of ${job.company_name}`"
+      />
+
       <div class="job-info">
         <h3 class="job-title">{{ job.title }}</h3>
+
         <p class="company-name">{{ job.company_name }}</p>
 
-        <!-- ✅ Improved state display -->
         <div class="state-icons">
-          <span v-if="isSeen && !isApplied && !isSelected" class="state-text">👀</span>
-          <span v-if="isApplied && !isSelected" class="state-text">⏳</span>
-          <span v-if="isSaved && !isSelected" class="state-text">💾</span>
+          <span v-if="isSeen && !isApplied && !isSelected" class="state-text" aria-label="Job seen"
+            >👀</span
+          >
+          <span v-if="isApplied && !isSelected" class="state-text" aria-label="Job applied"
+            >⏳</span
+          >
+          <span v-if="isSaved && !isSelected" class="state-text" aria-label="Job saved">💾</span>
         </div>
       </div>
     </div>
@@ -35,6 +51,10 @@ export default defineComponent({
     isSelected: Boolean,
   },
   computed: {
+    /**
+     * Computes the job logo URL.
+     * If the company logo is unavailable or invalid, a placeholder image is used.
+     */
     computedLogo() {
       return this.job.company_logo && this.job.company_logo.startsWith('http')
         ? this.job.company_logo
@@ -46,7 +66,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* ✅ Default Job Card Style */
 .job-card {
   display: flex;
   padding: 10px;
@@ -55,34 +74,38 @@ export default defineComponent({
   border-radius: 6px;
   background: white;
   transition: all 0.2s ease-in-out;
+  font-family: 'Source Sans Pro', sans-serif;
 }
 
-/* ✅ Hover Effect */
 .job-card:hover {
   background: #f9f9f9;
   transform: scale(1.02);
 }
 
-/* ✅ Style for Viewed Jobs */
 .job-card.viewed {
-  background: #e6f7ff; /* Light blue background */
+  background: #e6f7ff;
 }
 
-/* ✅ Style for Selected Job */
 .job-card.selected {
   background: #d1e8ff;
   border-left: 4px solid #0073b1;
   font-weight: bold;
+  transition:
+    background-color 0.1s ease-in-out,
+    border-left 0.1s ease-in-out,
+    transform 0.1s ease-in-out;
 }
 
-/* ✅ Layout */
+.job-card.selected:hover {
+  transform: scale(1.02);
+}
+
 .job-card-content {
   display: flex;
   width: 100%;
   align-items: center;
 }
 
-/* ✅ Job Logo */
 .job-logo {
   width: 50px;
   height: 50px;
@@ -92,7 +115,6 @@ export default defineComponent({
   object-fit: cover;
 }
 
-/* ✅ Job Info */
 .job-info {
   flex-grow: 1;
   margin-left: 12px;
@@ -101,7 +123,6 @@ export default defineComponent({
   justify-content: center;
 }
 
-/* ✅ Job Title */
 .job-title {
   font-size: 15px;
   color: #0073b1;
@@ -110,7 +131,6 @@ export default defineComponent({
   margin-bottom: 2px;
 }
 
-/* ✅ Company Name */
 .company-name {
   font-size: 13px;
   font-weight: bold;
@@ -118,13 +138,11 @@ export default defineComponent({
   margin-bottom: 4px;
 }
 
-/* ✅ State Icons */
 .state-icons {
   display: flex;
   gap: 6px;
 }
 
-/* ✅ State Text */
 .state-text {
   font-size: 14px;
   color: #555;
@@ -135,7 +153,6 @@ export default defineComponent({
   opacity: 0.8;
 }
 
-/* ✅ Debugging */
 .debug-text {
   font-size: 12px;
   color: gray;
