@@ -32,8 +32,11 @@ const addJob = async (jobData) => {
 const getJobs = async () => {
   try {
     console.time('🔄 DB Query Time')
+    const queryOptions = {
+      maxItemCount: 1000,
+    }
     const { resources } = await jobContainer.items
-      .query('SELECT * FROM c ORDER BY c.publication_date DESC')
+      .query('SELECT * FROM c ORDER BY c.publication_date DESC', queryOptions)
       .fetchAll()
     console.timeEnd('🔄 DB Query Time')
     return resources
@@ -76,9 +79,29 @@ const updateJobs = async (newJobs) => {
     console.log(`✅ Adding ${newJobs.length} new jobs...`)
     const insertedJobs = await Promise.all(
       newJobs.map(async (job) => {
-        job.id = job.id ? job.id.toString() : crypto.randomUUID()
-        const { resource } = await jobContainer.items.create(job)
-        return resource
+        try {
+          job.id = job.id ? job.id.toString() : crypto.randomUUID()
+
+          // Check if job with this ID already exists
+          const { resource: existingJob } = await jobContainer.item(job.id, job.id).read()
+
+          if (existingJob) {
+            return existingJob
+          } else {
+            // Job doesn't exist, create it
+            const { resource } = await jobContainer.items.create(job)
+            return resource
+          }
+        } catch (error) {
+          if (error.code === 404) {
+            // 404 means item doesn't exist, so create it
+            const { resource } = await jobContainer.items.create(job)
+            return resource
+          } else {
+            console.error(`❌ Error processing job ${job.id}:`, error.message)
+            throw error
+          }
+        }
       }),
     )
 

@@ -38,19 +38,24 @@ module.exports = (jobsContainer) => {
       }
 
       console.log('🔍 Fetching jobs from database...')
-      const { resources } = await jobsContainer.items.readAll().fetchAll()
-      const filteredJobs = resources.filter((job) => job.id !== 'last_update_timestamp')
+      const querySpec = {
+        query: "SELECT * FROM c WHERE c.id != 'last_update_timestamp' OFFSET 0 LIMIT 1000",
+      }
+      const { resources } = await jobsContainer.items.query(querySpec).fetchAll()
 
-      if (filteredJobs.length === 0) {
+      if (resources.length === 0) {
         console.warn('⚠ No jobs found. Fetching from API...')
         await fetchAndSaveJobs(jobsContainer)
-        const { resources: newJobs } = await jobsContainer.items.readAll().fetchAll()
-        return res.json(newJobs.filter((job) => job.id !== 'last_update_timestamp'))
+
+        // After fetching and saving, get only 100 jobs
+        const { resources: newJobs } = await jobsContainer.items.query(querySpec).fetchAll()
+
+        return res.json(newJobs)
       }
 
       // Cache jobs for 5 minutes
-      cache.set('jobs', filteredJobs)
-      res.json(filteredJobs)
+      cache.set('jobs', resources)
+      res.json(resources)
     } catch (error) {
       console.error('❌ Error fetching jobs:', error)
       res.status(500).json({ error: 'Failed to fetch jobs' })
@@ -82,21 +87,40 @@ module.exports = (jobsContainer) => {
    */
   router.get('/update', async (req, res) => {
     try {
-      console.log('🔄 Checking last job update timestamp...')
+      const forceUpdate = req.query.force === 'true'
+      console.log(`🔄 Job update request received. Force update: ${forceUpdate}`)
+
       const lastUpdate = await getLastJobUpdateTimestamp(jobsContainer)
       const now = new Date()
 
-      console.log('🔄 Requesting job update from Remotive API...')
-      await fetchAndSaveJobs(jobsContainer)
+      // Skip time check if force is true
+      if (!forceUpdate && lastUpdate && now - new Date(lastUpdate) < 6 * 60 * 60 * 1000) {
+        return res.json({
+          message: 'Jobs were updated less than 6 hours ago.',
+          lastUpdate: lastUpdate,
+        })
+      }
+
+      // Clear any existing cache
+      cache.del('jobs')
+
+      // Fetch and save new jobs
+      const result = await fetchAndSaveJobs(jobsContainer)
+
+      // Update the timestamp
       await jobsContainer.items.upsert({
         id: 'last_update_timestamp',
         timestamp: now.toISOString(),
       })
 
-      res.json({ message: 'Jobs updated successfully' })
+      res.json({
+        message: 'Jobs updated successfully',
+        jobCount: result.jobCount || 0,
+        timestamp: now.toISOString(),
+      })
     } catch (error) {
       console.error('❌ Error updating jobs:', error)
-      res.status(500).json({ error: 'Failed to update jobs' })
+      res.status(500).json({ error: 'Failed to update jobs', details: error.message })
     }
   })
 

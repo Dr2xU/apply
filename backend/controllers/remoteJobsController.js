@@ -7,7 +7,7 @@
 
 const axios = require('axios')
 
-const REMOTIVE_API_URL = 'https://remotive.io/api/remote-jobs'
+const REMOTIVE_API_URL = 'https://remotive.com/api/remote-jobs'
 
 /**
  * Fetches remote jobs from the Remotive API and saves them in the database.
@@ -47,12 +47,13 @@ const fetchAndSaveJobs = async (jobsContainer) => {
     console.log(`📦 Storing ${jobs.length} jobs into the database...`)
 
     // Save jobs to database
-    await Promise.all(jobs.map((job) => jobsContainer.items.create(job)))
+    await Promise.all(jobs.map((job) => jobsContainer.items.upsert(job)))
 
     console.log('✅ Jobs saved successfully.')
     return { message: 'Jobs updated successfully', jobCount: jobs.length }
   } catch (error) {
     console.error('❌ Error fetching jobs:', error.message)
+    console.error('Full error:', error)
     return { error: error.message || 'Error fetching jobs' }
   }
 }
