@@ -72,7 +72,7 @@ Nous avons utilisé **GitHub** pour suivre nos tâches et assurer une gestion ef
 ### 📌 Problème : Navigation et accessibilité
 
 - **Difficulté** : L’application n’était pas totalement accessible au clavier et aux lecteurs d’écran.
-- **Solution** : Ajout des **raccourcis clavier (`Tab`, `Enter`, `Arrow Keys`)**, gestion **ARIA**, et implémentation du **mode sombre**.
+- **Solution** : Ajout des **raccourcis clavier (`Tab`, `Enter`, `Arrow Keys`)**, et gestion **ARIA**.
 
 ---
 
