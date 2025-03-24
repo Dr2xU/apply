@@ -12,6 +12,7 @@ const { setupDatabase } = require('./config/db')
 const authRoutes = require('./routes/auth')
 const jobsRoutes = require('./routes/jobs')
 const userRoutes = require('./routes/users')
+const adminRoutes = require('./routes/admin')
 
 const app = express()
 app.use(express.json())
@@ -38,6 +39,7 @@ const startServer = async () => {
     app.use('/api/auth', authRoutes(users))
     app.use('/api/jobs', jobsRoutes(jobs))
     app.use('/api/users', userRoutes(users))
+    app.use('/api/admin', adminRoutes(users, jobs))
 
     const PORT = process.env.PORT || 5000
     app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`))
