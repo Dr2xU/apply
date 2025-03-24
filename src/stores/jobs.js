@@ -182,8 +182,13 @@ export const useJobStore = defineStore('jobStore', () => {
       }
     })
 
-    categoryOptions.value = [...categories].map((cat) => ({ label: cat, value: cat }))
-    locationOptions.value = [...locations].map((loc) => ({ label: loc, value: loc }))
+    categoryOptions.value = [...categories]
+      .sort((a, b) => a.localeCompare(b))
+      .map((cat) => ({ label: cat, value: cat }))
+
+    locationOptions.value = [...locations]
+      .sort((a, b) => a.localeCompare(b))
+      .map((loc) => ({ label: loc, value: loc }))
   }
 
   /**
